@@ -58,6 +58,18 @@ def clip_score(device):
 
     return _fn
 
+def noisyclip_score(device):
+    from flow_grpo.noisyclip_scorer import NoisyCLIPScorer
+
+    scorer = NoisyCLIPScorer(dtype=torch.float32, device=device)
+
+    def _fn(latents, prompts, metadata):
+        # Pass the raw latents directly to the scorer without decoding
+        scores = scorer(prompts, latents)
+        return scores, {}
+
+    return _fn
+
 def image_similarity_score(device):
     from flow_grpo.clip_scorer import ClipScorer
 
@@ -421,6 +433,7 @@ def multi_score(device, score_dict):
         "geneval": geneval_score,
         "clipscore": clip_score,
         "image_similarity": image_similarity_score,
+        "noisyclip": noisyclip_score,
     }
     score_fns={}
     for score_name, weight in score_dict.items():

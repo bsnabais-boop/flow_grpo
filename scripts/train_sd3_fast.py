@@ -669,8 +669,16 @@ def main(_):
             )  # (batch_size, num_steps + 1, 16, 96, 96)
             log_probs = torch.stack(log_probs, dim=1)  # shape after stack (batch_size, num_steps)
             timesteps = torch.stack(timesteps).unsqueeze(0).repeat(config.sample.train_batch_size, 1)  # shape after stack (batch_size, num_steps)
+
             # compute rewards asynchronously
-            rewards = executor.submit(reward_fn, images, prompts, prompt_metadata, only_strict=True)
+            if "noisyclip" in config.reward_fn:
+                # Bypass the VAE: send the final step's latents directly to the reward function
+                final_latents = latents[-1]
+                rewards = executor.submit(reward_fn, final_latents, prompts, prompt_metadata, only_strict=True)
+            else:
+                # Standard slow decoding for PickScore/CLIPScore
+                rewards = executor.submit(reward_fn, images, prompts, prompt_metadata, only_strict=True)
+            
             # yield to to make sure reward computation starts
             time.sleep(0)
 

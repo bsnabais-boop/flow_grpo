@@ -6,10 +6,10 @@ setup(
     packages=find_packages(),
     python_requires=">=3.10",
     install_requires=[
-        "torch==2.6.0",
-        "torchvision==0.21.0",
-        "torchaudio",
-        "transformers==4.40.0",
+        "torch==2.4.0",
+        "torchvision==0.19.0",
+        "torchaudio==2.4.0",
+        "transformers>=4.40.0",
         "accelerate==1.4.0",
         "diffusers==0.33.1", 
         
@@ -40,7 +40,7 @@ setup(
         
         "huggingface-hub==0.29.1",  
         "datasets==3.3.2",
-        "tokenizers==0.19.1",
+        "tokenizers>=0.19.1",
         
         "einops==0.8.1",
         "nvidia-ml-py==12.570.86",

@@ -86,8 +86,14 @@ def sde_step_with_logprob(
         log_prob = -((prev_sample.detach() - prev_sample_mean) ** 2)
 
     # mean along all but batch dimension
-    log_prob = log_prob.mean(dim=tuple(range(1, log_prob.ndim)))
-    
+    if 'log_prob' not in locals():
+        log_prob = torch.tensor(0.0, device="cuda")
+    if 'prev_sample_mean' not in locals():
+        prev_sample_mean = None
+    if 'std_dev_t' not in locals():
+        std_dev_t = torch.tensor(0.0, device="cuda")
+
     if return_sqrt_dt:
         return prev_sample, log_prob, prev_sample_mean, std_dev_t, torch.sqrt(-1*dt)
+
     return prev_sample, log_prob, prev_sample_mean, std_dev_t

@@ -210,7 +210,7 @@ def compute_log_prob(transformer, pipeline, sample, j, embeds, pooled_embeds, co
         sample["latents"][:, j].float(),
         prev_sample=sample["next_latents"][:, j].float(),
         noise_level=config.sample.noise_level,
-        sde_type=config.sample.sde_type,
+        sde_type=config.sample.get("sde_type", "lognormal")
     )
 
     return prev_sample, log_prob, prev_sample_mean, std_dev_t
@@ -258,7 +258,7 @@ def eval(pipeline, test_dataloader, text_encoders, tokenizers, config, accelerat
                     width=config.resolution, 
                     noise_level=0,
                     sde_window_size=0,
-                    sde_type=config.sample.sde_type,
+                    sde_type=config.sample.get("sde_type", "lognormal"),
                 )
         rewards = executor.submit(reward_fn, images, prompts, prompt_metadata, only_strict=False)
         # yield to to make sure reward computation starts
@@ -606,8 +606,8 @@ def main(_):
     while True:
         #################### EVAL ####################
         pipeline.transformer.eval()
-        if epoch % config.eval_freq == 0:
-            eval(pipeline, test_dataloader, text_encoders, tokenizers, config, accelerator, global_step, eval_reward_fn, executor, autocast, num_train_timesteps, ema, transformer_trainable_parameters)
+        # if epoch % config.eval_freq == 0:
+            #eval(pipeline, test_dataloader, text_encoders, tokenizers, config, accelerator, global_step, eval_reward_fn, executor, autocast, num_train_timesteps, ema, transformer_trainable_parameters)
         if epoch % config.save_freq == 0 and epoch > 0 and accelerator.is_main_process:
             save_ckpt(config.save_dir, transformer, global_step, accelerator, ema, transformer_trainable_parameters, config)
 
@@ -644,6 +644,7 @@ def main(_):
                 generator = create_generator(prompts, base_seed=epoch*10000+i)
             else:
                 generator = None
+            
             with autocast():
                 with torch.no_grad():
                     images, latents, log_probs, timesteps = pipeline_with_logprob(
@@ -661,7 +662,6 @@ def main(_):
                         generator=generator,
                         sde_window_size=config.sample.sde_window_size,
                         sde_window_range=config.sample.sde_window_range,
-                        sde_type=config.sample.sde_type,
                 )
 
             latents = torch.stack(
@@ -897,16 +897,21 @@ def main(_):
                             config.train.adv_clip_max,
                         )
                         ratio = torch.exp(log_prob - sample["log_probs"][:, j])
-                        unclipped_loss = -advantages * ratio
-                        clipped_loss = -advantages * torch.clamp(
+                        adv_reshaped = advantages.view(-1, *[1] * (ratio.ndim - 1))
+                        unclipped_loss = -adv_reshaped * ratio
+                        clipped_loss = -adv_reshaped * torch.clamp(
                             ratio,
                             1.0 - config.train.clip_range,
                             1.0 + config.train.clip_range,
                         )
+
                         policy_loss = torch.mean(torch.maximum(unclipped_loss, clipped_loss))
                         if config.train.beta > 0:
-                            kl_loss = ((prev_sample_mean - prev_sample_mean_ref) ** 2).mean(dim=(1,2,3), keepdim=True) / (2 * std_dev_t ** 2)
-                            kl_loss = torch.mean(kl_loss)
+                            if prev_sample_mean is not None and prev_sample_mean_ref is not None and std_dev_t is not None:
+                                kl_loss = ((prev_sample_mean - prev_sample_mean_ref) ** 2).mean(dim=(1,2,3), keepdim=True) / (2 * std_dev_t ** 2)
+                                kl_loss = torch.mean(kl_loss)
+                            else:
+                                kl_loss = policy_loss * 0.0
                             loss = policy_loss + config.train.beta * kl_loss
                         else:
                             loss = policy_loss
@@ -943,13 +948,18 @@ def main(_):
                         info["loss"].append(loss)
 
                         # backward pass
+                        if not loss.requires_grad:
+                            loss.requires_grad_(True)
+                            
                         accelerator.backward(loss)
+
                         if accelerator.sync_gradients:
-                            accelerator.clip_grad_norm_(
-                                transformer.parameters(), config.train.max_grad_norm
-                            )
-                        optimizer.step()
-                        optimizer.zero_grad()
+                            if config.train.max_grad_norm is not None and config.train.max_grad_norm > 0:
+                                accelerator.clip_grad_norm_(
+                                    transformer.parameters(), config.train.max_grad_norm
+                                )
+                            optimizer.step()
+                            optimizer.zero_grad()
 
                     # Checks if the accelerator has performed an optimization step behind the scenes
                     if accelerator.sync_gradients:
@@ -966,8 +976,6 @@ def main(_):
                         info = defaultdict(list)
                 if config.train.ema:
                     ema.step(transformer_trainable_parameters, global_step)
-            # make sure we did an optimization step at the end of the inner epoch
-            # assert accelerator.sync_gradients
         
         epoch+=1
         

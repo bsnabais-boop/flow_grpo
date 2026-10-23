@@ -8,7 +8,7 @@ def get_config():
     # run name for wandb logging and checkpoint saving -- if not provided, will be auto-generated based on the datetime.
     config.run_name = ""
     config.debug = False
-    config.num_epochs = 100000
+    config.num_epochs = 1000
     config.resume_from = None
     # random seed for reproducibility.
     config.seed = 42
@@ -21,12 +21,12 @@ def get_config():
     # number of checkpoints to keep before overwriting old ones.
     config.num_checkpoint_limit = 5
     # mixed precision training. options are "fp16", "bf16", and "no". half-precision speeds up training significantly.
-    config.mixed_precision = "fp16"
+    config.mixed_precision = "bf16"
     # allow tf32 on Ampere GPUs, which can speed up training.
     config.allow_tf32 = True
     # whether or not to use LoRA.
     config.use_lora = True
-    config.dataset = ""
+    config.dataset = "dataset/ocr"
     config.resolution = 768
     config.activation_checkpointing = False
     config.fsdp_optimizer_offload = False
@@ -34,7 +34,7 @@ def get_config():
     ###### Pretrained Model ######
     config.pretrained = pretrained = ml_collections.ConfigDict()
     # base model to load. either a path to a local directory, or a model name from the HuggingFace model hub.
-    pretrained.model = "runwayml/stable-diffusion-v1-5"
+    pretrained.model = "runwayml/stable-diffusion-3.5-medium"
     # revision of the model to load.
     pretrained.revision = "main"
 
@@ -112,7 +112,7 @@ def get_config():
 
     ###### Prompt Function ######
     # prompt function to use. see `prompts.py` for available prompt functions.
-    config.prompt_fn = "imagenet_animals"
+    config.prompt_fn = "general_ocr"
     # kwargs to pass to the prompt function.
     config.prompt_fn_kwargs = {}
 

@@ -247,6 +247,7 @@ def eval(pipeline, test_dataloader, text_encoders, tokenizers, config, accelerat
             with torch.no_grad():
                 images, _, _, _ = pipeline_with_logprob(
                     pipeline,
+                    prompt=prompts,
                     prompt_embeds=prompt_embeds,
                     pooled_prompt_embeds=pooled_prompt_embeds,
                     negative_prompt_embeds=sample_neg_prompt_embeds,
@@ -299,7 +300,7 @@ def eval(pipeline, test_dataloader, text_encoders, tokenizers, config, accelerat
                 pil = pil.resize((config.resolution, config.resolution))
                 pil.save(os.path.join(tmpdir, f"{idx}.jpg"))
             sampled_prompts = [last_batch_prompts_gather[index] for index in sample_indices]
-            sampled_rewards = [{k: last_batch_rewards_gather[k][index] for k in last_batch_rewards_gather} for index in sample_indices]
+            sampled_rewards = [rewards_dict['ori_avg'][i].item() for i in sample_indices]
             for key, value in all_rewards.items():
                 print(key, value.shape)
             wandb.log(
@@ -414,6 +415,10 @@ def main(_):
 
     # Move vae and text_encoder to device and cast to inference_dtype
     pipeline.vae.to(accelerator.device, dtype=torch.float32)
+    
+    if getattr(config, "enable_vae_slicing", False):
+        pipeline.vae.enable_slicing()
+
     pipeline.text_encoder.to(accelerator.device, dtype=inference_dtype)
     pipeline.text_encoder_2.to(accelerator.device, dtype=inference_dtype)
     pipeline.text_encoder_3.to(accelerator.device, dtype=inference_dtype)
@@ -647,7 +652,7 @@ def main(_):
             
             with autocast():
                 with torch.no_grad():
-                    images, latents, log_probs, timesteps = pipeline_with_logprob(
+                    images, latents, log_probs, timesteps, step_rewards = pipeline_with_logprob(
                         pipeline,
                         prompt_embeds=prompt_embeds,
                         pooled_prompt_embeds=pooled_prompt_embeds,
@@ -662,6 +667,8 @@ def main(_):
                         generator=generator,
                         sde_window_size=config.sample.sde_window_size,
                         sde_window_range=config.sample.sde_window_range,
+                        reward_fn=reward_fn,
+                        prompt_metadata=prompt_metadata,
                 )
 
             latents = torch.stack(
@@ -670,17 +677,17 @@ def main(_):
             log_probs = torch.stack(log_probs, dim=1)  # shape after stack (batch_size, num_steps)
             timesteps = torch.stack(timesteps).unsqueeze(0).repeat(config.sample.train_batch_size, 1)  # shape after stack (batch_size, num_steps)
 
-            # compute rewards asynchronously
-            if "noisyclip" in config.reward_fn:
-                # Bypass the VAE: send the final step's latents directly to the reward function
-                final_latents = latents[-1]
-                rewards = executor.submit(reward_fn, final_latents, prompts, prompt_metadata, only_strict=True)
-            else:
-                # Standard slow decoding for PickScore/CLIPScore
-                rewards = executor.submit(reward_fn, images, prompts, prompt_metadata, only_strict=True)
+           # Stack the step-rewards into a tensor of shape (batch_size, num_steps)
+            stacked_step_rewards = torch.stack([
+                torch.as_tensor(r, device=accelerator.device).float() 
+                for r in step_rewards
+            ], dim=1)
             
-            # yield to to make sure reward computation starts
-            time.sleep(0)
+            # Format as the expected dictionary
+            rewards_dict = {
+                "avg": stacked_step_rewards,
+                "ori_avg": stacked_step_rewards[:, -1] # Use final step for standard logging
+            }
 
             samples.append(
                 {
@@ -688,30 +695,13 @@ def main(_):
                     "prompt_embeds": prompt_embeds,
                     "pooled_prompt_embeds": pooled_prompt_embeds,
                     "timesteps": timesteps,
-                    "latents": latents[
-                        :, :-1
-                    ],  # each entry is the latent before timestep t
-                    "next_latents": latents[
-                        :, 1:
-                    ],  # each entry is the latent after timestep t
+                    "latents": latents[:, :-1],  # each entry is the latent before timestep t
+                    "next_latents": latents[:, 1:],  # each entry is the latent after timestep t
                     "log_probs": log_probs,
-                    "rewards": rewards,
+                    "rewards": rewards_dict,
                 }
             )
 
-        # wait for all rewards to be computed
-        for sample in tqdm(
-            samples,
-            desc="Waiting for rewards",
-            disable=not accelerator.is_local_main_process,
-            position=0,
-        ):
-            rewards, reward_metadata = sample["rewards"].result()
-            # accelerator.print(reward_metadata)
-            sample["rewards"] = {
-                key: torch.as_tensor(value, device=accelerator.device).float()
-                for key, value in rewards.items()
-            }
 
         # collate samples into dict where each entry has shape (num_batches_per_epoch * sample.batch_size, ...)
         samples = {
@@ -739,7 +729,7 @@ def main(_):
                     pil.save(os.path.join(tmpdir, f"{idx}.jpg"))  # 使用新的索引
 
                 sampled_prompts = [prompts[i] for i in sample_indices]
-                sampled_rewards = [rewards['avg'][i] for i in sample_indices]
+                sampled_rewards = [rewards_dict['ori_avg'][i].item() for i in sample_indices]
 
                 wandb.log(
                     {
@@ -754,8 +744,12 @@ def main(_):
                     step=global_step,
                 )
         samples["rewards"]["ori_avg"] = samples["rewards"]["avg"]
-        # The purpose of repeating `adv` along the timestep dimension here is to make it easier to introduce timestep-dependent advantages later, such as adding a KL reward.
-        samples["rewards"]["avg"] = samples["rewards"]["avg"].unsqueeze(1).repeat(1, num_train_timesteps)
+
+        step_rewards = samples["rewards"]["avg"] 
+        delta_rewards = step_rewards[:, 1:] - step_rewards[:, :-1]
+        first_step = step_rewards[:, :1]
+        samples["rewards"]["avg"] = torch.cat([first_step, delta_rewards], dim=1)
+        
         # gather rewards across processes
         gathered_rewards = {key: accelerator.gather(value) for key, value in samples["rewards"].items()}
         gathered_rewards = {key: value.cpu().numpy() for key, value in gathered_rewards.items()}
@@ -776,7 +770,12 @@ def main(_):
             prompts = pipeline.tokenizer.batch_decode(
                 prompt_ids, skip_special_tokens=True
             )
-            advantages = stat_tracker.update(prompts, gathered_rewards['avg'])
+
+            print("\n=== PONTUAÇÕES DO OCR ===")
+            print(samples['rewards']['ori_avg'])
+            print("=========================\n")
+
+            advantages = stat_tracker.update(prompts, samples['rewards']['ori_avg'].cpu())
             if accelerator.is_local_main_process:
                 print("len(prompts)", len(prompts))
                 print("len unique prompts", len(set(prompts)))
@@ -797,7 +796,7 @@ def main(_):
                 )
             stat_tracker.clear()
         else:
-            advantages = (gathered_rewards['avg'] - gathered_rewards['avg'].mean()) / (gathered_rewards['avg'].std() + 1e-4)
+            advantages = (samples['rewards']['ori_avg'] - samples['rewards']['ori_avg'].mean()) / (samples['rewards']['ori_avg'].std() + 1e-4)
 
         # ungather advantages; we only need to keep the entries corresponding to the samples on this process
         advantages = torch.as_tensor(advantages)

@@ -142,11 +142,16 @@ def ocr_score(device):
 
     scorer = OcrScorer()
 
-    def _fn(images, prompts, metadata):
+    def _fn(images, prompts, metadata=None):
         if isinstance(images, torch.Tensor):
             images = (images * 255).round().clamp(0, 255).to(torch.uint8).cpu().numpy()
             images = images.transpose(0, 2, 3, 1)  # NCHW -> NHWC
+        
+        if prompts is None:
+            prompts = metadata
+
         scores = scorer(images, prompts)
+        
         # change tensor to list
         return scores, {}
 
@@ -403,15 +408,13 @@ def unifiedreward_score_sglang(device):
         return results
 
     def _fn(images, prompts, metadata):
-        # 处理Tensor类型转换
         if isinstance(images, torch.Tensor):
             images = (images * 255).round().clamp(0, 255).to(torch.uint8).cpu().numpy()
             images = images.transpose(0, 2, 3, 1)  # NCHW -> NHWC
         
-        # 转换为PIL Image并调整尺寸
         images = [Image.fromarray(image).resize((512, 512)) for image in images]
 
-        # 执行异步批量评估
+
         text_outputs = asyncio.run(evaluate_batch_image(images, prompts))
         score = _extract_scores(text_outputs)
         score = [sc/5.0 for sc in score]

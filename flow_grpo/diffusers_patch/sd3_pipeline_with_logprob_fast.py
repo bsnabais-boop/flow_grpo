@@ -39,6 +39,8 @@ def pipeline_with_logprob(
     sde_window_size: int = 0,
     sde_window_range: tuple[int, int] = (0, 5),
     sde_type: Optional[str] = 'sde',
+    reward_fn: Optional[callable] = None,
+    prompt_metadata: Optional[List[Dict]] = None,
 ):
     height = height or self.default_sample_size * self.vae_scale_factor
     width = width or self.default_sample_size * self.vae_scale_factor
@@ -138,16 +140,17 @@ def pipeline_with_logprob(
         end = start + sde_window_size
         sde_window = (start, end)
     else:
-        # 最后一步接近图片，高斯分布很尖，概率很大，容易精度溢出，不参与训练
         sde_window = (0, len(timesteps)-1)
 
     # 6. Prepare image embeddings
     all_latents = []
     all_log_probs = []
     all_timesteps = []
+    all_step_rewards = []
 
     # 7. Denoising loop
     with self.progress_bar(total=num_inference_steps) as progress_bar:
+        all_step_rewards = []
         for i, t in enumerate(timesteps):
             if i < sde_window[0]:
                 cur_noise_level = 0
@@ -194,6 +197,20 @@ def pipeline_with_logprob(
                 all_latents.append(latents)
                 all_log_probs.append(log_prob)
                 all_timesteps.append(t)
+
+                if reward_fn is not None:
+                        with torch.no_grad():
+                            t_scale = t.float() / 1000.0 
+                            x_0_pred = latents - (t_scale * noise_pred.float())
+
+                            decoded_x0 = (x_0_pred / self.vae.config.scaling_factor) + self.vae.config.shift_factor
+                            decoded_x0 = decoded_x0.to(dtype=self.vae.dtype)
+                            intermediate_img = self.vae.decode(decoded_x0, return_dict=False)[0]
+                            intermediate_img = self.image_processor.postprocess(intermediate_img, output_type="pt")
+
+                            step_rewards_dict, _ = reward_fn(intermediate_img, prompt, prompt_metadata, only_strict=True)
+                            all_step_rewards.append(step_rewards_dict['avg'])
+                
             # call the callback, if provided
             if i == len(timesteps) - 1 or ((i + 1) > num_warmup_steps and (i + 1) % self.scheduler.order == 0):
                 progress_bar.update()
@@ -206,4 +223,4 @@ def pipeline_with_logprob(
     # Offload all models
     self.maybe_free_model_hooks()
 
-    return image, all_latents, all_log_probs, all_timesteps
+    return image, all_latents, all_log_probs, all_timesteps, all_step_rewards

@@ -24,8 +24,9 @@ export WANDB_MODE=offline
 echo "Starting..."
 
 export WANDB_MODE=offline
+export TOKENIZERS_PARALLELISM=false
 
 accelerate launch --num_processes 1 scripts/train_sd3_fast.py \
-  --config config/grpo.py:noisyclip_sd3_fast \
+  --config config/grpo.py:general_ocr_sd3 \
   --config.activation_checkpointing=True \
   --config.train.use_8bit_adam=True

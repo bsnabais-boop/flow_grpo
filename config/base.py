@@ -5,6 +5,7 @@ def get_config():
     config = ml_collections.ConfigDict()
 
     ###### General ######
+    config.enable_vae_slicing = True
     # run name for wandb logging and checkpoint saving -- if not provided, will be auto-generated based on the datetime.
     config.run_name = ""
     config.debug = False
@@ -119,6 +120,7 @@ def get_config():
     ###### Reward Function ######
     # reward function to use. see `rewards.py` for available reward functions.
     config.reward_fn = ml_collections.ConfigDict()
+    config.reward_fn.ocr_score = 1.0
     config.save_dir = ''
 
     ###### Per-Prompt Stat Tracking ######

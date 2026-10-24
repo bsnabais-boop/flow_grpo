@@ -5,6 +5,7 @@ import torch
 import numpy as np
 from diffusers.pipelines.stable_diffusion_3.pipeline_stable_diffusion_3 import retrieve_timesteps
 from .sd3_sde_with_logprob import sde_step_with_logprob
+from flow_grpo.rewards import multi_score
 import random
 
 def calculate_shift(
@@ -46,6 +47,8 @@ def pipeline_with_logprob(
     sde_window_size: int = 0,
     sde_window_range: tuple[int, int] = (0, 5),
     sde_type: Optional[str] = 'sde',
+    reward_fn: Optional[callable] = None,
+    prompt_metadata: Optional[List[Dict]] = None,
 ):
     height = height or self.default_sample_size * self.vae_scale_factor
     width = width or self.default_sample_size * self.vae_scale_factor
@@ -197,6 +200,24 @@ def pipeline_with_logprob(
                 all_latents.append(latents)
                 all_log_probs.append(log_prob)
                 all_timesteps.append(t)
+
+            # Evaluate Dense Reward for x_0 prediction
+                if reward_fn is not None:
+                    with torch.no_grad():
+                        # Flow Matching x_0 projection
+                        t_scale = t.float() / 1000.0 
+                        x_0_pred = latents - (t_scale * noise_pred.float())
+
+                        # Decode
+                        decoded_x0 = (x_0_pred / self.vae.config.scaling_factor) + self.vae.config.shift_factor
+                        decoded_x0 = decoded_x0.to(dtype=self.vae.dtype)
+                        intermediate_img = self.vae.decode(decoded_x0, return_dict=False)[0]
+                        intermediate_img = self.image_processor.postprocess(intermediate_img, output_type="pt")
+
+                        # Evaluate and store (you'll need to initialize `all_step_rewards = []` before the loop)
+                        step_reward = reward_fn(intermediate_img, prompt, prompt_metadata, only_strict=True)
+                        all_step_rewards.append(step_reward['avg'])
+            
             # call the callback, if provided
             if i == len(timesteps) - 1 or ((i + 1) > num_warmup_steps and (i + 1) % self.scheduler.order == 0):
                 progress_bar.update()

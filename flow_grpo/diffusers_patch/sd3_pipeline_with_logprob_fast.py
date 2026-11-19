@@ -46,22 +46,22 @@ def pipeline_with_logprob(
     width = width or self.default_sample_size * self.vae_scale_factor
 
     # 1. Check inputs. Raise error if not correct
-    self.check_inputs(
-        prompt,
-        prompt_2,
-        prompt_3,
-        height,
-        width,
-        negative_prompt=negative_prompt,
-        negative_prompt_2=negative_prompt_2,
-        negative_prompt_3=negative_prompt_3,
-        prompt_embeds=prompt_embeds,
-        negative_prompt_embeds=negative_prompt_embeds,
-        pooled_prompt_embeds=pooled_prompt_embeds,
-        negative_pooled_prompt_embeds=negative_pooled_prompt_embeds,
-        callback_on_step_end_tensor_inputs=callback_on_step_end_tensor_inputs,
-        max_sequence_length=max_sequence_length,
-    )
+    #self.check_inputs(
+        #prompt,
+        #prompt_2,
+        #prompt_3,
+        #height,
+        #width,
+        #negative_prompt=negative_prompt,
+        #negative_prompt_2=negative_prompt_2,
+        #negative_prompt_3=negative_prompt_3,
+        #prompt_embeds=prompt_embeds,
+        #negative_prompt_embeds=negative_prompt_embeds,
+        #pooled_prompt_embeds=pooled_prompt_embeds,
+        #negative_pooled_prompt_embeds=negative_pooled_prompt_embeds,
+        #callback_on_step_end_tensor_inputs=callback_on_step_end_tensor_inputs,
+        #max_sequence_length=max_sequence_length,
+    #)
 
     self._guidance_scale = guidance_scale
     self._skip_layer_guidance_scale = skip_layer_guidance_scale

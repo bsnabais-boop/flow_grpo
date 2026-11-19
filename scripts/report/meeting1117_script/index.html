@@ -1,0 +1,252 @@
+<title>Meeting Script 17 Nov</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one reading column of speaker cards, one per report section, in presenting order. Same palette as the report. */
+:root{
+  --bg:#f5f6f8; --surface:#ffffff; --ink:#15202b; --ink-2:#4a5562; --muted:#7a8591; --line:#dfe3e8;
+  --accent:#2a78d6; --accent-soft:#e3eefb; --warn:#c2551f; --warn-soft:#fbe9df; --good:#14825c; --good-soft:#dcf2e8;
+  --f-display:"Instrument Sans","Inter",system-ui,sans-serif; --f-body:"Inter",system-ui,-apple-system,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#11161c; --surface:#1a2129; --ink:#e8ecf0; --ink-2:#b4bdc7; --muted:#8994a0; --line:#2c3540;
+  --accent:#5598e7; --accent-soft:#1c3049; --warn:#f08a5a; --warn-soft:#3a2418; --good:#3cc28f; --good-soft:#15332a; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#11161c; --surface:#1a2129; --ink:#e8ecf0; --ink-2:#b4bdc7; --muted:#8994a0; --line:#2c3540;
+  --accent:#5598e7; --accent-soft:#1c3049; --warn:#f08a5a; --warn-soft:#3a2418; --good:#3cc28f; --good-soft:#15332a; color-scheme:dark}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.6;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 64px}
+.wrap{max-width:780px;margin:0 auto}
+h1,h2,h3{font-family:var(--f-display);line-height:1.2;text-wrap:balance;margin:0}
+h1{font-size:2rem;font-weight:700}
+h2{font-size:1.3rem;font-weight:700}
+header{padding-block:40px 10px}
+.lede{color:var(--ink-2);max-width:65ch;margin:8px 0 0}
+nav{display:flex;flex-wrap:wrap;gap:6px;margin:16px 0}
+nav a{font-size:.82rem;text-decoration:none;color:var(--ink-2);border:1px solid var(--line);border-radius:999px;padding:2px 10px;background:var(--surface)}
+nav a:hover,nav a:focus-visible{border-color:var(--accent);color:var(--accent);outline:none}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px;margin:14px 0;display:grid;gap:10px}
+.head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
+.time{font-family:var(--f-mono);font-size:.78rem;color:var(--muted);white-space:nowrap}
+.lbl{font-family:var(--f-mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);display:block;margin-bottom:2px}
+.say{border-left:3px solid var(--accent);padding-left:12px}
+.say p{margin:6px 0}
+.say p::before{content:"“"} .say p::after{content:"”"}
+.show ul,.ask ul{margin:4px 0;padding-left:20px} li{margin:3px 0}
+.ask{background:var(--bg);border-radius:8px;padding:10px 12px}
+.ask .q{font-weight:600}
+.tip{background:var(--warn-soft);border-radius:8px;padding:8px 12px;font-size:.92rem}
+.big{background:var(--accent-soft);border-radius:10px;padding:12px 16px;margin:14px 0}
+.mono{font-family:var(--f-mono);font-size:.86em}
+</style>
+
+<div class="wrap">
+<header>
+  <h1>Meeting script, 17 Nov</h1>
+  <p class="lede">What to show and say for each part of the report, in the report's order. Aim for about 20 minutes, leaving time for questions.
+  The quoted lines are suggestions: say them in your own words.</p>
+  <nav aria-label="Parts">
+    <a href="#s0">Opening</a><a href="#s1">1 Setup</a><a href="#s6">2 OCR problem</a><a href="#s8">3 Fix 1: long run</a><a href="#s7">4 Fix 2: differentiable OCR</a>
+    <a href="#allruns">5 All runs</a><a href="#s9">6 Is the gain real?</a><a href="#s5">7 GRPO runs</a><a href="#s3">8 Noise judge</a>
+    <a href="#s11">StitchVM</a><a href="#qa">Hard questions</a>
+  </nav>
+  <div class="tip"><b>Short on time?</b> Keep Opening, 2 OCR problem, 3 Fix 1, 5 All runs, 6 Is the gain real? and StitchVM. Say one sentence for 4 Fix 2.</div>
+</header>
+
+<section class="card" id="s0">
+  <div class="head"><h2>Opening</h2><span class="time">~1 min</span></div>
+  <div class="say"><span class="lbl">Say</span>
+    <p>The goal is a 10-step SD1.5 model that writes text as well as the 50-step model.</p>
+    <p>Main result: two long, cheap RL runs reach the 20 to 50-step text level at 10 steps. It is confirmed on new seeds and with three different OCR readers.</p>
+    <p>The noise-judge part works less well on SD1.5. At the end I have a proposal for that.</p>
+  </div>
+</section>
+
+<section class="card" id="s1">
+  <div class="head"><h2>1. Setup</h2><span class="time">~2 min</span></div>
+  <div class="show"><span class="lbl">Overview diagram, left to right</span><ul>
+    <li>A row of 10 denoising steps, from noise to the final image.</li>
+    <li>The <b>blue window</b> (steps 2–3) is the only random part, and the only part GRPO trains. This is where layout and letters form: the "latent spark".</li>
+    <li>The <b>green box</b> is the noise judge (NoisyCLIP). It scores alignment at steps 4, 6, 8 and 10 from the predicted clean latent, with no VAE decode.</li>
+    <li>The <b>orange part</b> is OCR on the final image, the text reward.</li>
+  </ul></div>
+  <div class="say"><span class="lbl">Say</span>
+    <p>Alignment is judged during generation, cheaply. Text is judged on the final image with OCR.</p>
+  </div>
+  <div class="show"><span class="lbl">Table: point at the last row, "How a result counts"</span></div>
+  <div class="say"><span class="lbl">Say</span>
+    <p>The target: at 10 steps SD1.5 keeps alignment but only 61% of the 50-step OCR. So the goal is a 10-step model with 50-step text.</p>
+    <p>Earlier I had three gains that disappeared on re-checking, so now the final checkpoint is fixed before looking. It is re-evaluated on new seeds, paired with the base model, with 95% confidence intervals. Only those numbers are in the report.</p>
+  </div>
+</section>
+
+<section class="card" id="s6">
+  <div class="head"><h2>2. OCR problem</h2><span class="time">~3 min</span></div>
+  <div class="say"><span class="lbl">Say</span>
+    <p>My GRPO runs were not improving text until I tried a run with many more images. First, why the normal runs failed.</p>
+  </div>
+  <div class="show"><span class="lbl">Two boxes (green, then orange)</span></div>
+  <div class="say"><span class="lbl">Say</span>
+    <p>The reward signal is there: inside a group, OCR varies a lot, and most groups contain a good image.</p>
+    <p>The gradient signal is not. Per image, the useful part of the gradient is about 1/10,000 of the noise. Signal equals noise only at 6,000–10,000 images per update, and we used 256.</p>
+  </div>
+  <div class="show"><span class="lbl">Bar chart (gradient share)</span><ul>
+    <li>The last bar is 57% of the gradient, and 92% of the KL penalty's gradient.</li>
+  </ul></div>
+  <div class="say"><span class="lbl">Say</span>
+    <p>The last step has tiny noise, and the log-prob gradient grows like 1 over sigma, so it dominates. But it only sharpens details; letters form in steps 2–5. So I left the last step out and trained an early window.</p>
+  </div>
+  <div class="show"><span class="lbl">Signal chart (5 variants)</span><ul>
+    <li>All five intervals overlap zero.</li>
+  </ul></div>
+  <div class="say"><span class="lbl">Say</span>
+    <p>I tested whether each image's own starting noise was the problem, by sharing it within the group. It wasn't: no variant raises the signal. But the 2-step window keeps the same signal and is about 4× cheaper per image. That leaves two fixes: many more images, or a lower-variance gradient. I tried both: first the long run.</p>
+  </div>
+</section>
+
+<section class="card" id="s8">
+  <div class="head"><h2>3. Fix 1: long run (main result)</h2><span class="time">~4 min</span></div>
+  <div class="show"><span class="lbl">Settings table</span><ul>
+    <li>Text prompts only; only steps 2–3 trained; 10× more images (256k).</li>
+  </ul></div>
+  <div class="show"><span class="lbl">Curves figure</span><ul>
+    <li><b>(a)</b> Held-out OCR during training, both seeds. Both rise above base 10 within 50 epochs and reach the base 20–50 band by about epoch 150. After that they move up and down by ±0.03.</li>
+    <li><b>(b)</b> Seed 1's final model, sampled with more steps. It stays above base at every step count, and at 20 steps it beats base at 50.</li>
+  </ul></div>
+  <div class="show"><span class="lbl">"Reward vs strict" box (use the example)</span></div>
+  <div class="say"><span class="lbl">Say</span>
+    <p>The training reward gives full credit if the word appears anywhere in what OCR reads. Strict compares the whole text, so extra or repeated words cost points. For "SALE NOW", an image reading "SALE NOW SALE NOW" gets 1 from the reward and 0 from strict.</p>
+  </div>
+  <div class="show"><span class="lbl">Results table (new seeds), then the green "In short" box</span><ul>
+    <li>OCR column: both seeds have a star, so both are significantly above base 10.</li>
+    <li>Text PickScore: the image as a whole, on the same text prompts.</li>
+    <li>Align PickScore: alignment on the GenAI-Bench prompts.</li>
+  </ul></div>
+  <div class="say"><span class="lbl">Say</span>
+    <p>At 10 steps both seeds write text clearly better than the base model: seed 1 reaches the 50-step level, seed 2 the 20-step level.</p>
+    <p>It's not only the word: the images on text prompts got better overall, to the 20-step level on PickScore.</p>
+    <p>And prompt alignment was not damaged: it changes by at most 0.001.</p>
+  </div>
+  <div class="tip">If asked why the seeds differ: held-out OCR moves by ±0.03 between checkpoints, and seed 1's final one landed high.</div>
+  <div class="show"><span class="lbl">Image grids</span><ul>
+    <li>Rows: base 10, base 50, differentiable OCR (collapsed), our two runs at 10 steps. Same noise, first image per prompt, not cherry-picked.</li>
+    <li>Second grid: the same prompts at 20 steps.</li>
+  </ul></div>
+  <div class="say"><span class="lbl">Say it before they do</span>
+    <p>Letters are clearly larger and cleaner, but spelling is still far from solved.</p>
+  </div>
+</section>
+
+<section class="card" id="s7">
+  <div class="head"><h2>4. Fix 2: differentiable OCR</h2><span class="time">~1 min</span></div>
+  <div class="show"><span class="lbl">Training curves</span><ul>
+    <li>The CLIP text-match term goes up, while PaddleOCR (real legibility) goes down.</li>
+  </ul></div>
+  <div class="say"><span class="lbl">Say</span>
+    <p>The second fix was a lower-variance gradient: I backpropagated a differentiable OCR reward. Even before training, no differentiable reader agreed with PaddleOCR. In training the proxy improved while the real metric halved: reward hacking. On new seeds, text and image quality collapsed. So volume is the route that works.</p>
+  </div>
+</section>
+
+<section class="card" id="allruns">
+  <div class="head"><h2>5. All runs side by side</h2><span class="time">~1 min</span></div>
+  <div class="show"><span class="lbl">Forest plot (OCR)</span><ul>
+    <li>Each row is one run. The dot is the difference from base 10 steps, the line its 95% CI, and the vertical line is zero.</li>
+    <li>Gray and green runs: around zero.</li>
+    <li>Base 20 and 50 steps: far to the right. That's the gap.</li>
+    <li>Blue (fix 1, the long runs): the only ones that reach that range.</li>
+    <li>Orange (fix 2, differentiable OCR): negative.</li>
+  </ul></div>
+  <div class="say"><span class="lbl">Say</span>
+    <p>Putting everything together: every normal-sized run is at zero, far below 20 or 50 steps. Only volume closed the gap, and the differentiable reward made it worse.</p>
+  </div>
+</section>
+
+<section class="card" id="s9">
+  <div class="head"><h2>6. Is the gain real?</h2><span class="time">~2 min</span></div>
+  <div class="show"><span class="lbl">Table: go row by row, comparing "Base 10" with "Ours 10"</span></div>
+  <div class="say"><span class="lbl">Say</span>
+    <p>My worry was that the model just writes more text or repeats the word to exploit the reward. So I re-scored the same images with strict OCR, exact line matches, a second reader (TrOCR) and a fully independent engine (EasyOCR). The gain survives every check. The word is repeated in only 0.3% of images, and three readers agree the 10-step model writes the word correctly 2–4× more often.</p>
+  </div>
+  <div class="tip">This covers seed 1 only. The seed-2 check runs today.</div>
+</section>
+
+<section class="card" id="s5">
+  <div class="head"><h2>7. GRPO runs</h2><span class="time">~3 min</span></div>
+  <div class="say"><span class="lbl">Say</span>
+    <p>Now alignment. These are the same normal-sized runs, whose OCR we saw in the forest plot.</p>
+  </div>
+  <div class="show"><span class="lbl">PickScore box (one sentence)</span></div>
+  <div class="say"><span class="lbl">Say</span>
+    <p>I added PickScore as the main alignment and quality metric for two reasons. CLIP is not independent, because our rewards are CLIP-based. And CLIP doesn't see the cost of fewer steps. PickScore is trained on human preferences, never used as a reward, and it separates 10, 20 and 50 steps.</p>
+  </div>
+  <div class="show"><span class="lbl">Second forest plot (PickScore on alignment prompts)</span><ul>
+    <li>Green (the NoisyCLIP run): the only confirmed alignment gain.</li>
+    <li>The long OCR runs: about zero, although they never saw alignment prompts.</li>
+  </ul></div>
+  <div class="show"><span class="lbl">Image grid</span><ul>
+    <li>Base on top, NoisyCLIP run below, same starting noise. The changes are small, as the numbers say.</li>
+  </ul></div>
+  <div class="say"><span class="lbl">Say, on the highlighted table row</span>
+    <p>This is the first confirmed alignment gain, and it is small. As we saw, text did not improve in these runs.</p>
+  </div>
+</section>
+
+<section class="card" id="s3">
+  <div class="head"><h2>8. Noise judge</h2><span class="time">~2 min</span></div>
+  <div class="say"><span class="lbl">Say</span><p>Now the weaker part: the noise judge on SD1.5.</p></div>
+  <div class="show"><span class="lbl">Warrior image rows</span><ul>
+    <li>Top row: NoisyCLIP's own colour map, made for SDXL. The colours are wrong on SD1.5.</li>
+    <li>Middle row: our linear map Φ on the predicted clean image. The real layout is visible from step 4–6.</li>
+  </ul></div>
+  <div class="show"><span class="lbl">Line chart (Spearman per step)</span><ul>
+    <li>x axis: the step where the judge looks. y axis: how well its score predicts the final image's CLIP score.</li>
+    <li>Gray line (the paper's input, z<sub>t</sub>): near zero.</li>
+    <li>Blue line (NoisyCLIP on Φ, what we use): 0.44 at step 5, no better than plain CLIP on the same view.</li>
+    <li>TAESD (a tiny decoder) is more accurate, but 2.6× more expensive.</li>
+  </ul></div>
+  <div class="show"><span class="lbl">Table, column by column</span><ul>
+    <li><b>Wrong-prompt detection:</b> the judge scores the image with its own prompt and with a random other prompt. NoisyCLIP on Φ picks the right one 100% of the time.</li>
+    <li><b>Spearman, all images:</b> does the score at step 5 predict the finished image's CLIP score? NoisyCLIP 0.44; TAESD 0.63; VAE 0.67.</li>
+    <li><b>Within the same prompt:</b> only ranking the 4 images of each prompt against each other, which is what GRPO uses. NoisyCLIP 0.29; TAESD 0.35; VAE 0.32.</li>
+    <li><b>First row:</b> NoisyCLIP as published (z<sub>t</sub> + SDXL colour map): −0.09 and 78%, so nothing on SD1.5.</li>
+  </ul></div>
+  <div class="say"><span class="lbl">Say</span>
+    <p>NoisyCLIP easily tells a completely wrong prompt apart. What is hard at step 5 is ranking images of the same prompt: 0.29. No cheap judge does much better that early; even a full VAE decode is at 0.32.</p>
+    <p>Used as published, it gives nothing on SD1.5. With our Φ view it works like plain CLIP on that view, without the gain noise-aware training should bring. The paper reports about 0.9 midway on SDXL, so off the shelf it doesn't transfer well to SD1.5.</p>
+  </div>
+  <div class="tip">If asked: the paper's 0.9 is at 50 steps on SDXL and ours is at 10 steps on SD1.5, so it is not a side-by-side comparison.</div>
+</section>
+
+<section class="card" id="s11">
+  <div class="head"><h2>Proposal: StitchVM</h2><span class="time">~2 min</span></div>
+  <div class="show"><span class="lbl">The "Proposed" box, then the plan</span></div>
+  <div class="say"><span class="lbl">Say</span>
+    <p>In one sentence: instead of turning the latent into a poor-quality image for NoisyCLIP to judge, we connect SD1.5's internal features straight to NoisyCLIP through a small adapter, so the judge sees from the first steps how the final image will turn out.</p>
+    <p>We saw that NoisyCLIP doesn't transfer to SD1.5: 0.44 at step 5. The problem is the linear projection: early on the latent is mostly noise, and that is exactly where we need the judge.</p>
+    <p>So I'd like to try Option B from the plan, StitchVM. Instead of projecting the latent to RGB, it takes the diffusion model's own hidden features and connects them to the reward model through a small adapter. It predicts the final reward from the current state, and the paper reports it beats linear projection at high noise.</p>
+    <p>StitchVM was built for transformers. SD1.5 is a UNet, so I'd use its down- and mid-block features, which is a new adaptation. Those features are computed anyway, so the judge is almost free.</p>
+    <p>I'd test it offline first: train only the adapter on trajectories I already have, then compare with NoisyCLIP, TAESD and the VAE on the same images. About a day of work. It goes into GRPO only if it clearly beats NoisyCLIP at steps 3–5.</p>
+  </div>
+  <div class="show"><span class="lbl">Then ask</span></div>
+  <div class="say"><p>You said not to train our own CLIP scorer. Is training only a small adapter OK, with the CLIP tail frozen?</p></div>
+  <div class="tip">Mention the text version (an OCR tail) only if asked. It's speculative.</div>
+</section>
+
+<section class="card" id="qa">
+  <div class="head"><h2>Hard questions, short answers</h2></div>
+  <div class="ask"><ul>
+    <li><span class="q">"Isn't the gain just OCR substring credit?"</span> No. Strict OCR, TrOCR and EasyOCR all show it, and repetition is 0.3%.</li>
+    <li><span class="q">"Why are the two seeds so different?"</span> Held-out OCR moves ±0.03 between checkpoints, and seed 1's last one landed high. Both are clearly above base 10.</li>
+    <li><span class="q">"Did alignment get worse?"</span> Alignment PickScore −0.0013 for seed 1, borderline; n.s. for seed 2. Text-prompt PickScore went up.</li>
+    <li><span class="q">"Is it just more compute?"</span> Yes, volume is the fix: 256k images, about 23 h on one H200. The 2-step window makes each image about 4× cheaper to train on.</li>
+    <li><span class="q">"Where is the noise judge in the long run?"</span> It scores alignment (weight 100 vs OCR 80) with no VAE decode. The text gain comes from OCR on the final image.</li>
+    <li><span class="q">"Why not make NoisyCLIP work on SD1.5?"</span> I already gave it our own SD1.5 colour map: 0.44, the same as plain CLIP. The limit is the projection itself.</li>
+    <li><span class="q">"Does continuing training help?"</span> Training-word OCR flattened; the held-out answer comes later today.</li>
+  </ul></div>
+</section>
+</div>

@@ -309,3 +309,7 @@ tags
 wandb/
 logs/
 notebooks/
+# local-only (2026-11-19)
+third_party/
+*.zip
+2605.19804v1.pdf

@@ -1,0 +1,351 @@
+<title>Latent Spark Progress</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@500;600;700&amp;family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap">
+<style>
+/* Layout: one reading column (~760px) with wide figure bands; day-by-day timeline, then one section per question. */
+:root{
+  --bg:#f5f6f8; --surface:#ffffff; --ink:#15202b; --ink-2:#4a5562; --muted:#7a8591; --line:#dfe3e8;
+  --accent:#2a78d6; --accent-soft:#e3eefb; --warn:#c2551f; --warn-soft:#fbe9df; --good:#14825c; --good-soft:#dcf2e8;
+  --f-display:"Instrument Sans","Inter",system-ui,sans-serif; --f-body:"Inter",system-ui,-apple-system,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#11161c; --surface:#1a2129; --ink:#e8ecf0; --ink-2:#b4bdc7; --muted:#8994a0; --line:#2c3540;
+  --accent:#5598e7; --accent-soft:#1c3049; --warn:#f08a5a; --warn-soft:#3a2418; --good:#3cc28f; --good-soft:#15332a; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#11161c; --surface:#1a2129; --ink:#e8ecf0; --ink-2:#b4bdc7; --muted:#8994a0; --line:#2c3540;
+  --accent:#5598e7; --accent-soft:#1c3049; --warn:#f08a5a; --warn-soft:#3a2418; --good:#3cc28f; --good-soft:#15332a; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.6;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 64px}
+.wrap{max-width:780px;margin:0 auto}
+.wide{max-width:1100px;margin:0 auto}
+h1,h2,h3{font-family:var(--f-display);line-height:1.2;text-wrap:balance;margin:0}
+h1{font-size:2.3rem;font-weight:700;letter-spacing:-.01em}
+h2{font-size:1.6rem;font-weight:700;margin-top:8px}
+h3{font-size:1.12rem;font-weight:600;margin-top:22px}
+p{margin:10px 0}
+ul{margin:8px 0;padding-left:22px} li{margin:4px 0}
+a{color:var(--accent)}
+.mono,code{font-family:var(--f-mono);font-size:.86em}
+header.top{padding-block:44px 18px}
+.eyebrow{font-family:var(--f-mono);font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.lede{font-size:1.12rem;color:var(--ink-2);max-width:65ch}
+nav.toc{display:flex;flex-wrap:wrap;gap:6px 8px;margin:18px 0 6px}
+nav.toc a{font-size:.85rem;text-decoration:none;color:var(--ink-2);border:1px solid var(--line);border-radius:999px;padding:3px 11px;background:var(--surface)}
+nav.toc a:hover,nav.toc a:focus-visible{border-color:var(--accent);color:var(--accent);outline:none}
+section{padding-block:30px 6px;border-top:1px solid var(--line);margin-top:30px}
+.tag{font-family:var(--f-mono);font-size:.75rem;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin:20px 0}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px;min-width:0}
+.tile .n{font-family:var(--f-display);font-size:1.9rem;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.1}
+.tile .l{font-size:.86rem;color:var(--ink-2);margin-top:4px}
+.box{border-radius:10px;padding:12px 16px;margin:16px 0}
+.box.key{background:var(--accent-soft)} .box.bad{background:var(--warn-soft)} .box.good{background:var(--good-soft)}
+.box b.h{display:block;font-family:var(--f-display);font-size:.95rem;margin-bottom:2px}
+figure{margin:18px 0}
+figure .img{background:#fff;border:1px solid var(--line);border-radius:8px;padding:10px;overflow-x:auto}
+figure .img img{display:block;max-width:100%;height:auto;margin:0 auto}
+figure .img.scroll img{max-width:none;width:100%;min-width:760px}
+figcaption{font-size:.88rem;color:var(--ink-2);margin-top:6px;max-width:75ch}
+.tbl{overflow-x:auto;margin:14px 0;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.88rem;font-variant-numeric:tabular-nums}
+th,td{padding:7px 10px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-weight:600;color:var(--ink-2);font-size:.8rem;background:var(--bg)}
+tr:last-child td{border-bottom:0}
+td.num,th.num{text-align:right;white-space:nowrap}
+tr.hl td{background:var(--accent-soft)}
+.sig{color:var(--good);font-weight:600} .neg{color:var(--warn);font-weight:600}
+.timeline{list-style:none;padding:0;margin:14px 0;display:grid;gap:10px}
+.timeline li{display:grid;grid-template-columns:92px 1fr;gap:12px;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px 14px}
+.timeline .d{font-family:var(--f-mono);font-size:.82rem;color:var(--accent);padding-top:2px}
+.timeline ul{margin:0;padding-left:18px}
+.status{display:grid;gap:10px;margin:14px 0}
+.job{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 16px}
+.pill{font-family:var(--f-mono);font-size:.72rem;padding:2px 8px;border-radius:999px;align-self:start;white-space:nowrap}
+.pill.run{background:var(--good-soft);color:var(--good)} .pill.wait{background:var(--accent-soft);color:var(--accent)}
+.job h3{margin:0;font-size:1rem}
+.job p{margin:2px 0;font-size:.92rem;color:var(--ink-2)}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+.cols>*{min-width:0}
+.small{font-size:.86rem;color:var(--ink-2)}
+@media (max-width:520px){h1{font-size:1.8rem}.timeline li{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto}}
+html{scroll-behavior:smooth}
+/* in-page editing */
+.edbar{position:fixed;right:max(16px,env(safe-area-inset-right,0px));bottom:max(16px,env(safe-area-inset-bottom,0px));z-index:50;display:flex;gap:8px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:6px;box-shadow:0 4px 16px rgba(0,0,0,.12)}
+.edbar[hidden]{display:none!important}
+.edbar button{font:600 .85rem var(--f-body);border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:6px 14px;cursor:pointer}
+.edbar button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.edbar button:disabled{opacity:.5;cursor:default}
+.edbar .msg{font-size:.8rem;color:var(--ink-2);padding:0 6px;max-width:220px}
+body.editing .wrap{outline:2px dashed var(--accent);outline-offset:8px;border-radius:4px}
+body.editing .wrap:focus{outline-style:solid}
+</style>
+
+<div class="wrap">
+<header class="top">
+  <h1>Steering the Latent Spark</h1>
+  <p class="lede"><br></p>
+  <nav class="toc" aria-label="Sections">
+    <a href="#setup">Setup</a><a href="#why">OCR problem</a><a href="#opt1">Fix 1: long run</a><a href="#opt2">Fix 2: differentiable OCR</a>
+    <a href="#allruns">All runs</a><a href="#robust">Robustness</a><a href="#grpo">GRPO runs</a><a href="#judge">Noise judge</a>
+    <a href="#next">StitchVM</a>
+  </nav>
+</header>
+
+<section id="setup" style="border-top:0;margin-top:0;padding-top:0">
+  <span class="tag">Context</span>
+  <h2>1. Current Setup</h2>
+  <figure><div class="img"><img src="img/overview.png" alt="Diagram of a 10-step trajectory with a stochastic window at steps 2-3, a noise judge at steps 4, 6, 8, 10 and OCR on the final image"></div>
+  <figcaption>The pipeline. Images are made in 10 steps. GRPO only trains a short random ("SDE") window in the early steps,
+  where layout and letters form. Alignment is judged during generation from the latent (no VAE decode). Text is judged with
+  OCR on the final image.</figcaption></figure>
+  <div class="tbl"><table>
+    <tbody><tr><th>What</th><th>Choice</th></tr>
+    <tr><td>Model</td><td>Stable Diffusion 1.5, LoRA rank 32 on attention</td></tr>
+    <tr><td>Sampler</td><td>10-step DDIM; random (η=1) only inside the training window</td></tr>
+    <tr><td>Text reward</td><td>PaddleOCR (CPU): 1 − edit distance / length; full credit if the word appears</td></tr>
+    <tr><td>Alignment reward</td><td>NoisyCLIP (HF <span class="mono">asiimo/noisyclip</span>) on the predicted clean latent, steps 4/6/8/10</td></tr>
+    <tr><td>Prompts</td><td>1,088 short text prompts (e.g. <i>A neon sign that says "PUSH"</i>) + 1,440 GenAI-Bench prompts</td></tr>
+    <tr><td>How a result counts</td><td>The final checkpoint is fixed before looking, then re-evaluated on <b>new seeds</b>: 128 prompts × 8 images, paired with the base model, 95% bootstrap CI</td></tr>
+  </tbody></table></div></section>
+
+<section id="why"><h2>2. OCR problem</h2>
+  <p>GRPO runs were not improving text.</p>
+  <div class="cols">
+    <div class="box good"><b class="h">The reward signal is there</b>Within a group of 8 images, OCR varies a lot (std 0.24–0.28).
+    72–78% of groups contain a good image (OCR ≥ 0.5) and 41–50% contain an exact match. OCR drives 80–88% of the reward differences.</div>
+    <div class="box bad"><b class="h">The gradient signal is not</b>Per image, the useful part of the gradient is only ρ² ≈ 1.3×10⁻⁴ of its noise.
+    Signal equals noise only after about 6,000–10,000 images, but an update used 256. A whole 100-epoch run carried a total signal of only about 1.8× the noise.</div>
+  </div>
+  <figure><div class="img"><img src="img/grad_share.png" alt="Bar chart: the last transition carries 57% of the gradient norm"></div>
+  <figcaption>The last denoising step dominates: 57% of the gradient (and 92% of the KL penalty's gradient) comes from it, because
+  its noise level σ is tiny and the log-prob gradient grows like 1/σ. That step only sharpens details, while letters form in steps 2–5.
+  This motivated leaving the last step out and training a window in the early steps.</figcaption></figure>
+  <figure><div class="img"><img src="img/snr.png" alt="Per-image signal for five sampling variants, all overlapping zero"></div>
+  <figcaption>Hypothesis: each image has its own starting noise z_T, which adds pure noise to the gradient. Test: 5 variants, 512 images each,
+  with an unbiased estimator. No variant raises the per-image signal, so the starting noise is not the problem. Top row = the setup of
+  the normal runs (own z_T, all steps random). Bottom row = the setup of fix 1 (shared z_T, only steps 2–3 random): same signal,
+  but ~4× cheaper to train per image, which is why fix 1 uses it.</figcaption></figure>
+  <div class="box key"><b class="h">Two possible fixes</b>(1) More images per update, made cheap by the 2-step window. (2) A lower-variance
+  gradient: backpropagate a differentiable OCR reward directly.</div>
+</section>
+
+<section id="opt1">
+  <span class="tag">Fix 1 · worked</span>
+  <h2>3. Fix 1: a long, cheap RL run</h2>
+  <div class="tbl"><table>
+    <tbody><tr><th>Setting</th><th>Normal run (NoisyCLIP + fixes)</th><th>Long OCR run</th></tr>
+    <tr><td>Prompts</td><td>alignment + text</td><td>text only</td></tr>
+    <tr><td>Reward</td><td>NoisyCLIP align (100→50) + OCR (40→80)</td><td>NoisyCLIP align 100 + OCR 80</td></tr>
+    <tr><td>Random (trained) steps</td><td>all 10, last left out of the update</td><td><b>only steps 2–3</b></td></tr>
+    <tr><td>Starting noise in a group</td><td>own per image</td><td>shared</td></tr>
+    <tr><td>Images per update × updates</td><td>256 × 100 = 25.6k</td><td><b>512 × 500 = 256k</b></td></tr>
+    <tr><td>lr / KL weight / group size</td><td>3e-4 / 0.01 / 8</td><td>3e-4 / 0.01 / 8</td></tr>
+    <tr><td>Time</td><td>8.3 h (A100)</td><td>22.6 h per seed (H200)</td></tr>
+  </tbody></table></div>
+  <figure><div class="img"><img src="img/ocr_curves.png" alt="Held-out OCR during training for two seeds, and OCR versus sampling steps"></div>
+  <figcaption>(a) Held-out OCR at 10 steps during training (128 test words × 4). Both seeds rise above base 10 within 50 epochs and
+  reach the base 20/50 band by epoch ~150, then fluctuate by ±0.03. (b) Seed 1's final model with more steps: it stays above
+  the base model at every step count, and at 20 steps it beats base at 50. Solid lines = the OCR reward, dashed = strict OCR (see the box below).</figcaption></figure>
+  <div class="box key"><b class="h">"Reward" vs "strict" OCR</b>Both read all the text in the image with PaddleOCR (lines joined, spaces removed, lower case) and compare it with the target word, as 1 − edit distance / word length.
+  <ul>
+    <li><b>Reward</b> (what training optimises, and the "OCR" in all tables): if the target appears <i>anywhere</i> inside the text that was read, the image gets full credit (1.0), whatever else is written.</li>
+    <li><b>Strict</b>: no such shortcut. The whole text that was read is compared with the target, so extra letters, extra words or a repeated word all cost points.</li>
+  </ul>
+  Example, target "SALE NOW": an image that reads "SALE NOW SALE NOW" gets 1.0 from the reward but 0.0 from strict; an image that reads "SALENOWX" gets 1.0 and 0.86. Strict is the check that the gain is not just the model writing more text or repeating the word. It is lower for every model, but the gain stays (see section 6).</div>
+  <div class="tbl"><table>
+    <tbody><tr><th>New seeds, 1,024 images</th><th class="num">OCR</th><th class="num">Exact word</th><th class="num">Text PickScore</th><th class="num">Align PickScore</th></tr>
+    <tr><td>Base, 10 steps</td><td class="num">0.103</td><td class="num">1.3%</td><td class="num">0.775</td><td class="num">0.816</td></tr>
+    <tr><td>Base, 20 steps</td><td class="num">0.151</td><td class="num">3.5%</td><td class="num">0.786</td><td class="num">0.823</td></tr>
+    <tr><td>Base, 50 steps</td><td class="num">0.181</td><td class="num">3.7%</td><td class="num">0.791</td><td class="num">0.826</td></tr>
+    <tr class="hl"><td>Ours seed 1, 10 steps</td><td class="num sig">0.188*</td><td class="num sig">4.0%*</td><td class="num sig">0.787*</td><td class="num neg">0.814 (−0.0013*)</td></tr>
+    <tr class="hl"><td>Ours seed 2, 10 steps</td><td class="num sig">0.150*</td><td class="num">2.4%</td><td class="num sig">0.782*</td><td class="num">0.815 (n.s.)</td></tr>
+  </tbody></table></div>
+  <div class="box good"><b class="h">In short</b>At 10 steps, both seeds write text clearly better than the base model: seed 1 reaches the 50-step level and seed 2 the 20-step level. The images on text prompts also got better overall (Text PickScore at the 20-step level), and prompt alignment was not damaged (Align PickScore changes by at most 0.001).</div>
+  <figure><div class="img scroll"><img src="img/grid_ocr.jpg" alt="Grid of 8 text prompts for base 10, base 50, differentiable OCR, ours seed 1 and seed 2"></div>
+  <figcaption>The first 8 OCR test prompts (prompt above each column), same starting noise in every row, first image per prompt (not cherry-picked). Rows: base 10 steps,
+  base 50 steps, the failed differentiable-OCR model, and our two long runs at 10 steps. Letters are larger and cleaner,
+  but spelling is still far from solved.</figcaption></figure>
+  <figure><div class="img scroll"><img src="img/grid_20.jpg" alt="Base vs ours at 20 steps"></div>
+  <figcaption>The same 8 prompts at 20 steps (base vs seed 1). The gain carries over to more steps, although training only used 10.</figcaption></figure>
+</section>
+
+<section id="opt2">
+  <span class="tag">Fix 2 · failed</span>
+  <h2>4. Fix 2: a differentiable OCR reward</h2>
+  <ul>
+    <li><b>Setup:</b> DRaFT/AlignProp-style training. Backpropagate TrOCR-large's likelihood of the target word (on the PaddleOCR text crop) plus a CLIP "text match" term, through the last 8 DDIM steps and the VAE. 600 updates of 8 images, 1 hour on the H200.</li>
+    <li><b>Warning sign before training:</b> no differentiable reader agreed with PaddleOCR within a prompt (best Spearman 0.17).</li>
+    <li><b>Result:</b> real legibility (PaddleOCR) halved, 0.245 → 0.125 (first vs last 100 updates). Only the CLIP term rose. On new seeds, text and image quality collapsed: OCR −0.052*, alignment PickScore −0.126*.</li>
+  </ul>
+  <figure><div class="img"><img src="img/pilot.png" alt="PaddleOCR falls while the CLIP text-match rises during training"></div>
+  <figcaption>Training curves (50-update moving average). The proxy improved while the real metric fell: reward hacking. The collapsed images are in the third row of the grid in section 3.</figcaption></figure>
+</section>
+
+<section id="allruns"><h2>5. All runs side by side</h2>
+  <p>Every run was re-evaluated on new seeds (1,024 images per set) against the base model at 10 steps. A star (*) means the 95% CI excludes zero.</p>
+  <figure><div class="img"><img src="img/conf_ocr.png" alt="Forest plot of OCR differences per run"></div>
+  <figcaption>OCR on held-out text prompts. Every normal-sized run (gray, green) stays near zero, far below what 20 or 50 steps give.
+  Only the long runs (blue, fix 1) reach that range. The differentiable OCR reward (orange, fix 2) made text worse.</figcaption></figure>
+</section>
+
+<section id="robust">
+  <span class="tag">Robustness · seed 1</span>
+  <h2>6. Checking if the gain is actually real</h2>
+  <p>Worry: the reward gives full credit if the word appears anywhere, and some images write the word twice. So we re-scored
+  the same images with stricter metrics and two other OCR engines.</p>
+  <div class="tbl"><table>
+    <tbody><tr><th>Metric</th><th class="num">Base 10</th><th class="num">Ours 10</th><th class="num">Base 50</th><th class="num">Ours 20</th></tr>
+    <tr><td>OCR reward (PaddleOCR, substring credit)</td><td class="num">0.103</td><td class="num sig">0.187*</td><td class="num">0.181</td><td class="num sig">0.234*</td></tr>
+    <tr><td>Strict OCR (no substring credit)</td><td class="num">0.092</td><td class="num sig">0.155*</td><td class="num">0.149</td><td class="num sig">0.191*</td></tr>
+    <tr><td>A line reads exactly the word</td><td class="num">0.7%</td><td class="num sig">2.7%*</td><td class="num">2.6%</td><td class="num sig">4.0%*</td></tr>
+    <tr><td>TrOCR (second reader) reads it exactly</td><td class="num">1.9%</td><td class="num sig">6.7%*</td><td class="num">5.1%</td><td class="num sig">7.4%*</td></tr>
+    <tr><td>EasyOCR (own detector + reader), strict</td><td class="num">0.063</td><td class="num sig">0.109*</td><td class="num">0.119</td><td class="num sig">0.156*</td></tr>
+    <tr><td>Word written twice or more</td><td class="num">0.0%</td><td class="num">0.3%</td><td class="num">0.2%</td><td class="num">0.1%</td></tr>
+  </tbody></table></div>
+  <p class="small">* vs the base model at the same step count. EasyOCR ran in a separate paired job on an A100. Lines detected per image: 2.5 for both models.</p>
+  <div class="box good"><b class="h">Verdict</b>The gain survives every check. Repetition is rare (0.3%) and does not explain it. Three
+  independent readers agree that the 10-step model writes the word correctly 2–4× more often.</div></section>
+
+<section id="grpo"><h2>7. GRPO runs: alignment improved, text did not</h2>
+  <p>All runs below were re-evaluated on new seeds (1,024 images per set) against the base model at 10 steps. A star (*) means the 95% CI excludes zero. Their OCR results are in section 5.</p>
+  <div class="box key"><b class="h">Why&nbsp; added PickScore</b>First, we only measured alignment only with CLIP. Two problems:
+  <ul>
+    <li><b>CLIP is not independent:</b> the rewards we train on are CLIP-based (the ORM baseline uses CLIP on the final image, and both noise judges are CLIP models). A model can raise CLIP without really getting better.</li>
+    <li><b>CLIP barely sees the cost of fewer steps:</b> CLIP is almost the same at 10, 20 and 50 steps (+0.001), even though the 10-step images clearly look worse.</li>
+  </ul>
+  PickScore is a CLIP-H model fine-tuned on human choices (Pick-a-Pic: which of two images people preferred for a prompt). It scores alignment and image quality together and is never used as a reward, so it works as an independent judge. It also separates the step counts: base 20 and 50 steps beat 10 steps by +0.008* and +0.011*. That makes it the main alignment/quality metric.</div>
+  <figure><div class="img"><img src="img/conf_pick.png" alt="Forest plot of PickScore differences on alignment prompts"></div>
+  <figcaption>PickScore on held-out GenAI-Bench prompts (an independent judge never used in training). The NoisyCLIP run
+  (green) is the only one with a confirmed gain. The long OCR runs barely change alignment, although they never saw alignment prompts.</figcaption></figure>
+  <figure><div class="img scroll"><img src="img/grid_align.jpg" alt="Eight alignment images, base vs NoisyCLIP run"></div>
+  <figcaption>The first 8 held-out GenAI-Bench prompts (prompt above each column), same starting noise: base (top) vs the NoisyCLIP run (bottom), 10 steps. The changes are small, as the numbers say.</figcaption></figure>
+  <div class="tbl"><table>
+    <tbody><tr><th>Run (final checkpoint, new seeds)</th><th class="num">Align CLIP</th><th class="num">Align PickScore</th><th class="num">Text CLIP</th><th class="num">Text PickScore</th><th class="num">OCR</th></tr>
+    <tr><td>Base 20 steps</td><td class="num">+0.0010</td><td class="num sig">+0.0075*</td><td class="num sig">+0.0047*</td><td class="num sig">+0.0114*</td><td class="num sig">+0.049*</td></tr>
+    <tr><td>Base 50 steps</td><td class="num">−0.0001</td><td class="num sig">+0.0106*</td><td class="num sig">+0.0055*</td><td class="num sig">+0.0166*</td><td class="num sig">+0.079*</td></tr>
+    <tr><td>ORM: CLIP on decoded image</td><td class="num">+0.0001</td><td class="num neg">−0.0020*</td><td class="num">+0.0004</td><td class="num sig">+0.0011*</td><td class="num">+0.004</td></tr>
+    <tr><td>Weight schedule run</td><td class="num">+0.0004</td><td class="num">+0.0000</td><td class="num">+0.0013</td><td class="num sig">+0.0021*</td><td class="num sig">+0.014*</td></tr>
+    <tr><td>Step schedule run</td><td class="num">−0.0002</td><td class="num">−0.0003</td><td class="num">−0.0003</td><td class="num sig">+0.0012*</td><td class="num">+0.000</td></tr>
+    <tr class="hl"><td>NoisyCLIP + weight schedule + fixes</td><td class="num sig">+0.0014*</td><td class="num sig">+0.0015*</td><td class="num sig">+0.0069*</td><td class="num sig">+0.0035*</td><td class="num">−0.007</td></tr>
+  </tbody></table></div>
+  <p class="small">"Fixes" = from the gradient diagnosis in section 2: the last step left out of the update, a lower KL weight (0.01) and one large update per epoch. "Weight schedule": reward weights move from alignment to text over 60 epochs (in the NoisyCLIP run, OCR starts at half weight instead of 0). "Step schedule": the number of sampling steps grows 4 → 6 → 8 → 10. No long run (sections 3 and 5) uses a schedule.</p></section>
+
+<section id="judge"><h2>8. NoisyCLIP works on SD1.5 only with a colour map</h2>
+  <p>NoisyCLIP was trained on SDXL latents. On SD1.5, its own colour map gives wrong colours (top row). Rendering the
+  <i>predicted clean latent</i> with a linear map fitted to SD1.5 (Φ, middle row) shows the real layout from step 4–6.</p>
+  <figure><div class="img"><img src="img/views.jpg" alt="Two rows of five views of a warrior along the trajectory, plus the final image"></div>
+  <figcaption>What the judge sees along a 10-step trajectory ("A warrior with a metal armguard standing on a hill").</figcaption></figure>
+  <figure><div class="img"><img src="img/nc_steps.png" alt="Spearman correlation per step for each judge"></div>
+  <figcaption>How well a judge applied at step k predicts the final image's CLIP score (512 images, held-out GenAI-Bench prompts).
+  NoisyCLIP as published (gray, on z_t) is near zero. On Φ(x̂₀) (blue) it reaches 0.44 at step 5, the same as plain CLIP on that view.
+  TAESD (a tiny decoder) is more accurate but 2.6× more expensive.</figcaption></figure>
+  <div class="tbl"><table>
+    <tbody><tr><th>Judge</th><th class="num">Cost (UNet steps)</th><th class="num">Spearman at step 5: all images</th><th class="num">Within the same prompt</th><th class="num">Wrong-prompt detection</th></tr>
+    <tr><td>NoisyCLIP on z_t (paper's input)</td><td class="num">0.104</td><td class="num">−0.09</td><td class="num">−0.01</td><td class="num">78%</td></tr>
+    <tr class="hl"><td>NoisyCLIP on Φ(x̂₀) (used)</td><td class="num">0.104</td><td class="num">0.44</td><td class="num">0.29</td><td class="num">100%</td></tr>
+    <tr><td>TAESD decode + CLIP</td><td class="num">0.275</td><td class="num">0.63</td><td class="num">0.35</td><td class="num">100%</td></tr>
+    <tr><td>VAE decode + CLIP</td><td class="num">1.80</td><td class="num">0.67</td><td class="num">0.32</td><td class="num">100%</td></tr>
+  </tbody></table></div>
+  <ul class="small">
+    <li><b>Spearman, all images:</b> does the judge's score at step 5 of 10 predict the CLIP score of the finished image? 1 = perfect order, 0 = random.</li>
+    <li><b>Within the same prompt:</b> the same, but only ranking the 4 images of each prompt against each other. This is what GRPO needs, since it compares images of the same prompt in a group.</li>
+    <li><b>Wrong-prompt detection:</b> how often the judge gives the true prompt a higher score than a random other prompt.</li>
+  </ul>
+  <div class="box key"><b class="h">What this shows</b>NoisyCLIP easily tells a completely wrong prompt apart (100%), but ranking images of the same
+  prompt at step 5 is hard (0.29). No cheap judge does much better that early: even a full VAE decode reaches only 0.32. Used as published
+  (z_t with the SDXL colour map) it gives nothing on SD1.5, and with our Φ view it performs like plain CLIP on that view, without the gain
+  that noise-aware training should bring. The paper reports ~0.9 midway on SDXL (50 steps), so NoisyCLIP does not transfer well to SD1.5
+  off the shelf (not a side-by-side comparison: 10 steps here).</div></section>
+
+<section id="next"><h2>StitchVM: a noise judge built for SD1.5</h2><div class="cols">
+    <div class="box good"><b class="h">Proposed: backbone stitching</b>Early layers of the diffusion model feed a reward-model tail through a small adapter s<sub>ψ</sub>(h<sub>t</sub>).
+    It predicts the final reward from the current state, and the article reportes that it beat linears projection at high noise
+    (σ ∈ [0.1, 0.9]).</div>
+  </div>
+  <h3>Plan</h3>
+  <ul>
+    <li><b>Adapt it to SD1.5:</b> StitchVM was built for diffusion transformers; SD1.5 is a UNet, so stitch its down- and
+    mid-block features instead.&nbsp;</li>
+    <li><b>Cost:</b> those features are computed anyway during denoising, so the judge only adds the adapter and the reward tail
+    (NoisyCLIP adds 0.10 UNet steps, a VAE decode 1.8).</li>
+    <li><b>Test offline first, no GRPO:</b> train only the adapter on the 10-step trajectories already saved, then compare with
+    NoisyCLIP, TAESD and the VAE on the same 512 held-out images: Spearman per step, wrong-prompt detection and pruning savings
+    at α = 0.1. About a day of work and a few GPU hours.</li></ul></section>
+</div>
+
+<div class="edbar" id="edbar" hidden="">
+  <span class="msg" id="edmsg" aria-live="polite"></span>
+  <button type="button" id="edcancel" hidden="">Cancel</button>
+  <button type="button" id="edtoggle" class="primary">Edit page</button>
+</div>
+<script>
+(function(){
+  const HEAD='<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>';
+  const bar=document.getElementById('edbar'), btn=document.getElementById('edtoggle'),
+        cancel=document.getElementById('edcancel'), msg=document.getElementById('edmsg'),
+        wrap=document.querySelector('.wrap');
+  let art=null, editing=false, dirty=false, saving=false;
+  const say=t=>{msg.textContent=t||''};
+  function setEditing(on){
+    editing=on; document.body.classList.toggle('editing',on);
+    if(on){wrap.setAttribute('contenteditable','true');wrap.setAttribute('spellcheck','true');wrap.focus();}
+    else{wrap.removeAttribute('contenteditable');wrap.removeAttribute('spellcheck');}
+    btn.textContent=on?'Save':'Edit page'; cancel.hidden=!on;
+    say(on?'Click any text to change it.':'');
+  }
+  function buildDoc(){
+    const c=document.body.cloneNode(true);
+    c.querySelectorAll('[contenteditable],[spellcheck]').forEach(e=>{e.removeAttribute('contenteditable');e.removeAttribute('spellcheck')});
+    const w=c.querySelector('.wrap'); if(w){w.removeAttribute('contenteditable');w.removeAttribute('spellcheck')}
+    const b=c.querySelector('#edbar'); if(b) b.setAttribute('hidden','');
+    const m=c.querySelector('#edmsg'); if(m) m.textContent='';
+    const k=c.querySelector('#edcancel'); if(k) k.setAttribute('hidden','');
+    const t=c.querySelector('#edtoggle'); if(t) t.textContent='Edit page';
+    c.querySelectorAll('#edbar button').forEach(x=>x.removeAttribute('disabled'));
+    return HEAD+c.innerHTML.replace(/^\s+/,'\n')+'</body></html>';
+  }
+  async function save(){
+    if(!dirty){setEditing(false);return}
+    saving=true; btn.disabled=true; cancel.disabled=true; say('Saving…');
+    const html=buildDoc();
+    try{ await art.publish(html); dirty=false; say('Saved.'); }
+    catch(e){
+      const code=e&&e.code;
+      saving=false; btn.disabled=false; cancel.disabled=false;
+      if(code==='conflict'){say('Someone else saved first; the page is reloading to their version.');}
+      else if(code==='not_writer'||code==='not_granted'){setEditing(false);bar.hidden=true;}
+      else if(code==='rate_limited'){say('Too many saves; wait a moment and press Save again.');}
+      else{say('Could not save ('+(code||'error')+'). Your edits are still here; try Save again.');}
+    }
+  }
+  btn.addEventListener('click',()=>{ if(saving) return; editing?save():setEditing(true); });
+  cancel.addEventListener('click',()=>{ if(dirty&&!confirm('Discard your changes?')) return; location.reload(); });
+  wrap.addEventListener('input',()=>{ if(editing){dirty=true;say('Unsaved changes.')} });
+  wrap.addEventListener('paste',e=>{ if(!editing) return; e.preventDefault();
+    const t=(e.clipboardData||window.clipboardData).getData('text/plain'); document.execCommand('insertText',false,t); });
+  document.addEventListener('keydown',e=>{ if(editing&&(e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s'){e.preventDefault();save()} });
+  window.addEventListener('beforeunload',e=>{ if(dirty&&!saving){e.preventDefault();e.returnValue=''} });
+  (async()=>{
+    if(!window.claude||!claude.use) return;
+    try{
+      const [a,u]=await Promise.all([claude.use('artifact'),claude.use('user')]);
+      if(!a) return;
+      if(u&&!u.canEdit()) return;
+      art=a; bar.hidden=false;
+    }catch(_){}
+  })();
+})();
+</script>
+
+
+
+
+
+
+
+
+

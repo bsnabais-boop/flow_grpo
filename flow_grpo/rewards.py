@@ -146,11 +146,16 @@ def ocr_score(device):
         if isinstance(images, torch.Tensor):
             images = (images * 255).round().clamp(0, 255).to(torch.uint8).cpu().numpy()
             images = images.transpose(0, 2, 3, 1)  # NCHW -> NHWC
-        
-        if prompts is None:
-            prompts = metadata
 
-        scores = scorer(images, prompts)
+        actual_prompts = []
+        if metadata is not None:
+            for meta in metadata:
+                if isinstance(meta, dict) and "target_text" in meta:
+                    actual_prompts.append(meta["target_text"])
+                else:
+                    actual_prompts.append(str(meta))
+
+        scores = scorer(images, actual_prompts)
         
         # change tensor to list
         return scores, {}

@@ -34,25 +34,42 @@ class OcrScorer:
         :param prompts: Corresponding target text list
         :return: Reward tensor (CPU)
         """
+        if isinstance(prompts, str):
+            prompts = [prompts]
+        elif isinstance(prompts, dict):
+            prompts = [prompts]
+        
         clean_prompts = []
         for p in prompts:
-
+            text_val = ""
             if isinstance(p, dict):
-
-                p = p.get("prompt", p.get("text", p.get("caption", str(p))))
-            
-            if isinstance(p, str):
-                if '"' in p:
-
-                    parts = p.split('"')
+                for key in ["prompt", "text", "caption", "target", "string"]:
+                    if key in p and p[key]:
+                        text_val = str(p[key])
+                        break
+                if not text_val:
+                    for val in p.values():
+                        if isinstance(val, str) and val.strip():
+                            text_val = val
+                            break
+            elif isinstance(p, str):
+                text_val = p
+                if '"' in text_val:
+                    parts = text_val.split('"')
                     if len(parts) > 1:
-                        p = parts[1]
+                        text_val = parts[1]
+            
+            if not text_val or text_val.strip() == "{}":
+                text_val = "text" 
+                
+            clean_prompts.append(str(text_val).strip())
 
+        prompts = clean_prompts
         rewards = []
-        # Ensure input lengths are consistent
-        assert len(images) == len(prompts), "Images and prompts must have the same length"
+
+        assert len(images) == len(prompts), f"Images ({len(images)}) and prompts ({len(prompts)}) must have the same length"
+        
         for img, prompt in zip(images, prompts):
-            # Convert image format
             if isinstance(img, Image.Image):
                 img = np.array(img)
 

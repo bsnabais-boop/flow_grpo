@@ -7,7 +7,7 @@
 #SBATCH --cpus-per-task=8            # Aumentar CPU (8 núcleos)
 #SBATCH --mem=64G                    # Aumentar a RAM do sistema para 64GB
 #SBATCH --gres=gpu:1                 # Pede 1 GPU EXCLUSIVO (Impede OOMs causados por outros)
-#SBATCH --time=24:00:00              # Tempo máximo do job (24 horas)
+#SBATCH --time=72:00:00              # Tempo máximo do job (72 horas)
 
 
 source ~/.bashrc
@@ -27,6 +27,6 @@ export WANDB_MODE=offline
 export TOKENIZERS_PARALLELISM=false
 
 accelerate launch --num_processes 1 scripts/train_sd3_fast.py \
-  --config config/grpo.py:general_ocr_sd3 \
+  --config config/grpo.py:general_ocr_sd3_1gpu \
   --config.activation_checkpointing=True \
   --config.train.use_8bit_adam=True

@@ -23,6 +23,8 @@ def get_config():
     config.num_checkpoint_limit = 5
     # mixed precision training. options are "fp16", "bf16", and "no". half-precision speeds up training significantly.
     config.mixed_precision = "bf16"
+    # bf16 autocast for LoRA sampling + training in scripts/train_sd15.py (off = behaviour of all runs before 2026-11-18)
+    config.lora_autocast = False
     # allow tf32 on Ampere GPUs, which can speed up training.
     config.allow_tf32 = True
     # whether or not to use LoRA.
@@ -56,6 +58,8 @@ def get_config():
     # number of batches to sample per epoch. the total number of samples per epoch is `num_batches_per_epoch *
     # batch_size * num_gpus`.
     sample.num_batches_per_epoch = 2
+    # PaddleOCR worker processes for the mixed reward (0 = OCR in the main process, serially; flow_grpo/ocr_pool.py)
+    sample.ocr_workers = 0
     # Whether use all samples in a batch to compute std
     sample.global_std = True
     # noise level
@@ -71,6 +75,9 @@ def get_config():
     config.train = train = ml_collections.ConfigDict()
     # batch size (per GPU!) to use for training.
     train.batch_size = 1
+    # number of training micro-batches per epoch (0 = one per sampling batch). Set
+    # train.gradient_accumulation_steps to the same value for one optimizer step per epoch.
+    train.micro_batches = 0
     # whether to use the 8bit Adam optimizer from bitsandbytes.
     train.use_8bit_adam = False
     # learning rate.
@@ -120,7 +127,8 @@ def get_config():
     ###### Reward Function ######
     # reward function to use. see `rewards.py` for available reward functions.
     config.reward_fn = ml_collections.ConfigDict()
-    config.reward_fn.ocr_score = 1.0
+    config.reward_fn.ocr = 1.0
+    config.reward_fn.clipscore = 1.0
     config.save_dir = ''
 
     ###### Per-Prompt Stat Tracking ######

@@ -1,0 +1,377 @@
+<title>Latent Spark Progress Report</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,650&family=Source+Sans+3:wght@400;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one reading column (~72ch) with wide figures/tables allowed to scroll; sticky contents bar on wide screens. */
+:root {
+  --bg: #f7f8f9; --surface: #ffffff; --fg: #1b2228; --muted: #5b6670; --line: #dde2e6;
+  --accent: #1f6f8b; --accent-soft: #e3f0f4;
+  --good: #2e7d4f; --good-soft: #e5f3ea; --bad: #b3412e; --bad-soft: #f8e7e3;
+  --s1: #1f6f8b; --s2: #c08a1e; --s3: #b3412e; --s4: #8a96a0;
+  --display: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --body: "Source Sans 3", "Segoe UI", Helvetica, Arial, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #12171b; --surface: #182026; --fg: #e3e8ec; --muted: #9aa6b0; --line: #2a343c;
+  --accent: #6cb8d4; --accent-soft: #1b3440; --good: #6cc492; --good-soft: #17301f; --bad: #e88a76; --bad-soft: #3a211b;
+  --s1: #6cb8d4; --s2: #e0b34f; --s3: #e88a76; --s4: #7d8a94; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #12171b; --surface: #182026; --fg: #e3e8ec; --muted: #9aa6b0; --line: #2a343c;
+  --accent: #6cb8d4; --accent-soft: #1b3440; --good: #6cc492; --good-soft: #17301f; --bad: #e88a76; --bad-soft: #3a211b;
+  --s1: #6cb8d4; --s2: #e0b34f; --s3: #e88a76; --s4: #7d8a94; color-scheme: dark; }
+body { background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 16px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.wrap { max-width: 78rem; margin: 0 auto; padding-block: 32px 64px; display: grid; grid-template-columns: 14rem minmax(0, 1fr); gap: 40px; }
+nav.toc { position: sticky; top: calc(16px + env(safe-area-inset-top, 0px)); align-self: start; font-size: 14px; }
+nav.toc ol { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; }
+nav.toc a { color: var(--muted); text-decoration: none; }
+nav.toc a:hover, nav.toc a:focus-visible { color: var(--accent); }
+nav.toc .lbl { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 10px; display: block; }
+main { min-width: 0; max-width: 52rem; }
+h1, h2, h3 { font-family: var(--display); text-wrap: balance; line-height: 1.2; }
+h1 { font-size: 2.3rem; font-weight: 650; margin: 0 0 8px; }
+h2 { font-size: 1.6rem; font-weight: 650; margin: 56px 0 12px; padding-top: 16px; border-top: 1px solid var(--line); }
+h3 { font-size: 1.15rem; font-weight: 650; margin: 28px 0 8px; }
+p, li { max-width: 68ch; }
+.sub { color: var(--muted); margin: 0 0 24px; }
+.eyebrow { font-size: 12px; text-transform: uppercase; letter-spacing: .1em; color: var(--accent); font-weight: 600; }
+a { color: var(--accent); }
+code, .mono { font-family: var(--mono); font-size: .86em; }
+code { background: var(--accent-soft); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+.glance { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 20px 24px; }
+.glance ul { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px; }
+.tw { overflow-x: auto; margin: 12px 0 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { padding: 7px 10px; text-align: left; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-weight: 600; color: var(--muted); font-size: 12.5px; background: var(--bg); white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+td.num { font-family: var(--mono); font-size: 12.5px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+td.pos { color: var(--good); background: var(--good-soft); }
+td.neg { color: var(--bad); background: var(--bad-soft); }
+td.ns { color: var(--fg); }
+.ci { display: block; color: var(--muted); font-size: 11px; }
+.star { margin-left: 3px; }
+.verdict { display: inline-block; font-size: 12px; font-weight: 600; padding: 1px 8px; border-radius: 10px; white-space: nowrap; }
+.v-no { background: var(--bad-soft); color: var(--bad); } .v-yes { background: var(--good-soft); color: var(--good); }
+.v-wait { background: var(--accent-soft); color: var(--accent); }
+.note { color: var(--muted); font-size: 14px; }
+.pending { background: var(--accent-soft); border-radius: 6px; padding: 12px 16px; }
+.figs { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr)); gap: 16px; margin: 12px 0; }
+figure { margin: 0; min-width: 0; }
+figcaption { font-size: 13.5px; color: var(--muted); margin-bottom: 6px; font-weight: 600; }
+svg.chart { width: 100%; height: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; }
+svg .grid { stroke: var(--line); stroke-width: 1; }
+svg .zero { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 3 3; }
+svg .tick, svg .axis { fill: var(--muted); font-family: var(--body); font-size: 11px; }
+svg .ln { fill: none; stroke-width: 2.2; } svg .dot { stroke: none; }
+svg .band { stroke: none; opacity: .14; }
+.s1.ln { stroke: var(--s1); } .s1.dot, .s1.band { fill: var(--s1); }
+.s2.ln { stroke: var(--s2); } .s2.dot, .s2.band { fill: var(--s2); }
+.s3.ln { stroke: var(--s3); } .s3.dot, .s3.band { fill: var(--s3); }
+.s4.ln { stroke: var(--s4); stroke-dasharray: 4 3; } .s4.dot, .s4.band { fill: var(--s4); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--muted); }
+.lg { display: inline-flex; align-items: center; gap: 6px; }
+.sw { width: 14px; height: 3px; display: inline-block; border-radius: 2px; }
+.sw.s1 { background: var(--s1); } .sw.s2 { background: var(--s2); } .sw.s3 { background: var(--s3); } .sw.s4 { background: var(--s4); }
+.timeline { list-style: none; padding: 0; margin: 12px 0; display: grid; gap: 0; }
+.timeline li { display: grid; grid-template-columns: 7.5rem minmax(0, 1fr); gap: 14px; padding: 10px 0; border-bottom: 1px solid var(--line); max-width: none; }
+.timeline time { font-family: var(--mono); font-size: 13px; color: var(--accent); padding-top: 2px; }
+.steps { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 3px; margin: 16px 0 6px; }
+.steps div { background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 6px 2px; text-align: center; font-size: 11.5px; line-height: 1.3; }
+.steps b { display: block; font-family: var(--mono); font-size: 13px; }
+.steps .t { color: var(--muted); font-family: var(--mono); font-size: 10.5px; }
+.steps .dark { background: var(--accent-soft); }
+.steps .q { outline: 2px solid var(--s2); outline-offset: -2px; }
+.steps .cut { border-right: 3px solid var(--s3); }
+.imgs { display: grid; gap: 10px; margin: 12px 0; }
+.imgs img { width: 100%; max-width: 100%; border-radius: 4px; display: block; }
+.callout { border-left: 3px solid var(--accent); padding: 4px 0 4px 14px; margin: 14px 0; }
+@media (max-width: 900px) { .wrap { grid-template-columns: minmax(0, 1fr); } nav.toc { display: none; } }
+@media (max-width: 520px) { h1 { font-size: 1.8rem; } .timeline li { grid-template-columns: minmax(0, 1fr); gap: 2px; } .steps { font-size: 10px; } }
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+html { scroll-behavior: smooth; }
+</style>
+
+<div class="wrap">
+<nav class="toc" aria-label="Contents">
+  <span class="lbl">Contents</span>
+  <ol>
+    <li><a href="#glance">At a glance</a></li>
+    <li><a href="#timeline">Timeline</a></li>
+    <li><a href="#port">Switch to SD 1.5</a></li>
+    <li><a href="#ocr">GRPO on text rendering</a></li>
+    <li><a href="#spark">Where the spark forms</a></li>
+    <li><a href="#steps">Step-reduction baseline</a></li>
+    <li><a href="#p1">Phase 1 · Noise-aware PRM</a></li>
+    <li><a href="#p2">Phase 2 · Conformal pruning</a></li>
+    <li><a href="#p3">Phase 3 · GRPO with the PRM</a></li>
+    <li><a href="#curricula">Supervisor's curricula</a></li>
+    <li><a href="#method">How results are checked</a></li>
+    <li><a href="#questions">Questions for the meeting</a></li>
+    <li><a href="#next">Next steps</a></li>
+    <li><a href="#files">Files</a></li>
+  </ol>
+</nav>
+<main>
+<div class="eyebrow">Thesis progress · 6–10 November 2026</div>
+<h1>Steering the Latent Spark</h1>
+<p class="sub">Process-oriented alignment for Stable Diffusion 1.5: everything done since switching from SD 3.5 Medium to SD 1.5, how it was done, and what the numbers say.</p>
+
+<section id="glance" class="glance">
+  <strong>At a glance</strong>
+  <ul>
+    <li><strong>Phase 1 works:</strong> our own noise-aware reward model predicts the final image's alignment from the noisy latent, with no VAE decode, at <strong>%%COST_TRAINED%% UNet steps per call</strong> (VAE + CLIP: %%COST_VAE%%). In the 10-step GRPO sampler it reaches Spearman 0.80 with the final score at step 5 and is the best early predictor of all methods tested.</li>
+    <li><strong>Phase 2 works:</strong> conformal early pruning with that scorer saves <strong>~22% of generation compute</strong> (groups of 8, prune once at step 6 of 10) with a calibrated 10% risk of losing quality. TAESD saves 10–18%, the VAE nothing.</li>
+    <li><strong>Phase 3: no confirmed gain yet.</strong> GRPO on mixed alignment + text prompts with our process reward reached OCR 0.120 vs %%B10_OCR%% (base, 10 steps) at its best checkpoint (epoch 60) on the in-training evaluation seeds (latest checkpoint: %%PRM_LAST_OCR%%, not significant), but re-evaluated on <strong>new seeds</strong> (1024 + 1024 images) the gain shrinks to +0.005 (95% CI −0.008…+0.017, not significant). Alignment is unchanged; the CLIP-outcome-reward baseline is also flat on OCR and slightly worse on PickScore. The policy now moves (approx_kl ~2e-4), but 60 epochs are not enough to close the gap to 20 steps (OCR +0.049).</li>
+    <li><strong>Supervisor's curricula:</strong> the weight curriculum (alignment first, OCR ramped in) gives the most consistent text gain so far in the in-training evaluation (OCR +0.005 to +0.022 at every checkpoint, significant at epochs 30, 40 and 90) with alignment unchanged; the steps curriculum (4 → 10 steps) finished, its checkpoints are being evaluated; the run with both is training. %%CURR_GLANCE%%</li>
+    <li><strong>The earlier OCR-only GRPO runs did not work</strong> (8 runs, every independent check within noise). Diagnosis: SD 1.5 rarely renders text and the policy barely moved (approx_kl ~1e-7). The Phase 3 setup moves it ~1000× more.</li>
+    <li><strong>Step reduction target:</strong> base SD 1.5 at 10 steps keeps 61% of its 50-step OCR. Alignment (CLIP) saturates at 10–20 steps; text keeps improving to 50.</li>
+  </ul>
+</section>
+
+<h2 id="timeline">Timeline</h2>
+<ol class="timeline">
+  <li><time>6 Nov, 16:14</time><div>Switch requested: Flow-GRPO on <strong>SD 3.5 Medium</strong> (1 GPU, OCR reward) → <strong>SD 1.5</strong>, as asked by the supervisor. SD 1.5 sampler with exact log-probabilities written; first SD 1.5 GRPO run (job 625909) started.</div></li>
+  <li><time>7 Nov</time><div>Run 625909 flat after 224 epochs; stopped. Per-step evaluation of intermediate latents built. Found the training reward came from early previews that carry no signal; switched to the final-image reward and short 1–2 word OCR prompts.</div></li>
+  <li><time>7–9 Nov</time><div>Seven more OCR training configurations (windows, clipping, update count, learning rate), each checked against base on 1024 paired images. None improved OCR.</div></li>
+  <li><time>9 Nov</time><div>Goal and supervisor's three-phase plan written into <code>CLAUDE.md</code>. Found that the NoisyCLIP scorer in the repo was a random, untrained placeholder. Phase 1 started: untrained projection, then our own trained noise-aware scorer.</div></li>
+  <li><time>9–10 Nov</time><div>Phase 1 follow-ups: per-skill analysis, robustness to 10/15 steps and stochastic sampling, LLM-written subtle negatives, latent-input scorer (v2), retraining for the 10-step GRPO setting. Step-reduction baseline (4–50 steps).</div></li>
+  <li><time>10 Nov</time><div>Decision: focus on prompt alignment while keeping good text rendering. Phase 2 (conformal pruning, groups of 4 and 8, several pruning points) completed. Phase 3 GRPO runs (our PRM vs CLIP ORM) started at 10:17, every checkpoint evaluated automatically. In the afternoon, the supervisor's two curricula (reward weights and number of denoising steps) were implemented and queued.</div></li>
+  <li><time>10 Nov, 15:07</time><div>The cluster administrator cancelled all our jobs on the H200 node (5 trainings at once). PRM and ORM runs kept at epoch 100. The three curricula were resubmitted to run one after another, 100 epochs each.</div></li>
+  <li><time>11 Nov</time><div>Weight curriculum finished (01:23), steps curriculum finished (09:07), both-curricula run started. New-seed confirmation of the curricula launched.</div></li>
+</ol>
+
+<h2 id="port">1. Switch from SD 3.5 Medium to SD 1.5</h2>
+<p>The starting point was this repo's Flow-GRPO fork training <strong>SD 3.5 Medium</strong> on one GPU with an OCR reward (<code>scripts/train_sd3_fast.py</code>). SD 1.5 is an epsilon-prediction diffusion model, not a flow-matching one, so the GRPO sampler had to be rebuilt:</p>
+<ul>
+  <li><strong>Stochastic DDIM step with an exact Gaussian log-probability</strong> (<code>flow_grpo/diffusers_patch/ddim_with_logprob.py</code>), DDPO-style, used inside an "SDE window" of steps; deterministic DDIM elsewhere (<code>sd15_pipeline_with_logprob.py</code>).</li>
+  <li><strong>Trainer</strong> <code>scripts/train_sd15.py</code> (LoRA rank 32 on the UNet attention, GRPO loss with PPO clipping and a KL term), configs <code>general_ocr_sd15_*</code> in <code>config/grpo.py</code>. 10 sampling steps for training.</li>
+  <li>The plan's “t ∈ [1.0, 0.5]” maps to the high-noise half of the DDIM schedule: steps 1–5 of 10 (timesteps 901 → 501).</li>
+</ul>
+<div class="steps" aria-label="The 10-step DDIM schedule used in training">
+  <div class="dark"><b>1</b><span class="t">t 901</span></div><div class="dark"><b>2</b><span class="t">801</span></div><div class="dark"><b>3</b><span class="t">701</span></div>
+  <div class="dark q"><b>4</b><span class="t">601</span></div><div class="dark"><b>5</b><span class="t">501</span></div>
+  <div class="q cut"><b>6</b><span class="t">401</span></div><div><b>7</b><span class="t">301</span></div><div class="q"><b>8</b><span class="t">201</span></div><div><b>9</b><span class="t">101</span></div><div class="q"><b>10</b><span class="t">1</span></div>
+</div>
+<p class="note">Shaded: the “latent spark” half (t ∈ [1, 0.5]). Gold outline: steps where the Phase 3 process reward queries our scorer. Red edge: the conformal pruning point found in Phase 2 (after step 6). Text in the image forms at steps 3–5; decoded previews say nothing about the final image before step 4–5.</p>
+<p><strong>First SD 1.5 run (625909, original reward):</strong> 224 epochs (~14 h). Eval OCR on 1018 test prompts went from 0.046 to 0.049 at epoch 120 (paired t = 0.65, i.e. no change). 72% of OCR reads were empty: SD 1.5 almost never renders the long target phrases. Diagnostics showed the LoRA was updating but the policy barely moved.</p>
+
+<h2 id="ocr">2. GRPO on text rendering (OCR reward): what was tried</h2>
+<p>Reward: <code>80 × OCR + CLIPScore</code> (OCR = 1 − normalised edit distance, PaddleOCR). After the first run, prompts were replaced by short 1–2 word targets (<code>dataset/ocr_simple</code>: 1088 train / 128 test prompts, test words never seen in training). Every row below was checked against the base model on the same images and seeds.</p>
+<div class="tw"><table>
+<thead><tr><th>Run (job)</th><th>What changed</th><th>Independent check, OCR vs base</th><th>Verdict</th></tr></thead>
+<tbody>
+<tr><td>625909</td><td>Original: rewards from x0 previews inside a random 2-step window, long phrases</td><td class="num">+0.003 (t = 0.65)</td><td><span class="verdict v-no">no gain</span></td></tr>
+<tr><td>625986 → 626027</td><td>Final-image reward, short prompts, 8 → 32 prompts/epoch, fixed-seed eval; window in steps 1–5</td><td class="num">+0.011 (z = 1.0)</td><td><span class="verdict v-no">no gain</span></td></tr>
+<tr><td>626064</td><td>2-step window moved to steps 3–8 (where text forms)</td><td class="num">−0.015 … +0.005 over 40 epochs</td><td><span class="verdict v-no">no gain</span></td></tr>
+<tr><td>626069</td><td>4-step window in steps 3–8</td><td class="num">−0.002 / +0.002 (1024 images)</td><td><span class="verdict v-no">no gain</span></td></tr>
+<tr><td>626081</td><td>+ PPO clip range 1e-4 → 1e-3</td><td class="num">−0.011 (z = −1.4)</td><td><span class="verdict v-no">no gain</span></td></tr>
+<tr><td>626086</td><td>+ 1 optimizer step per epoch</td><td class="num">−0.021 (z = −2.9) at ep 30, −0.002 at ep 90</td><td><span class="verdict v-no">no gain</span></td></tr>
+<tr><td>option 3</td><td>+ learning rate 1e-4 → 3e-4</td><td class="num">+0.0005 (z = 0.1)</td><td><span class="verdict v-no">no gain</span></td></tr>
+</tbody></table></div>
+<h3>What we learned from it</h3>
+<ul>
+  <li><strong>The reward signal existed, the policy did not move.</strong> No zero-variance groups, within-group reward std ≈ 22, but approx_kl ≈ 1e-7 per update. With clip range 1e-4, 86% of the samples in every second update were clipped away. CLIPScore rose slightly (+0.002 to +0.009): training changed the model, not towards legible text.</li>
+  <li><strong>SD 1.5 rarely renders the target text</strong> (exact match ~2%), so most groups contain no good example to reinforce.</li>
+  <li><strong>Evaluation pitfalls found on the way:</strong> the default 40-step eval did not measure the 10-step sampler being trained; a fully stochastic eval sampler produced a spurious +0.036 gain; and in-training evals (512 images, many looks) produced two false “gains” (z = 2.5 and z = 1.8) that vanished on independent checks. Since then every claim needs an independent paired check (section <a href="#method">8</a>).</li>
+</ul>
+
+<h2 id="spark">3. Where the latent spark forms (per-step analysis)</h2>
+<p><code>scripts/eval_intermediate_latents.py</code> decodes the model's predicted clean image x̂₀ at every step and scores it with the training reward (128 prompts × 8 images, 10 steps).</p>
+<div class="tw"><table>
+<thead><tr><th>Step (of 10)</th><th>1–3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th><th>10</th></tr></thead>
+<tbody>
+<tr><td>Preview OCR (base)</td><td class="num">0.00–0.05</td><td class="num">0.10</td><td class="num">0.12</td><td class="num">0.13</td><td class="num">0.13</td><td class="num">0.13</td><td class="num">0.12</td></tr>
+<tr><td>Within-group ranking agreement with final reward</td><td class="num">0.02–0.14</td><td class="num">0.26</td><td class="num">0.45</td><td class="num">0.60</td><td class="num">0.70</td><td class="num">0.79</td><td class="num">0.93</td></tr>
+</tbody></table></div>
+<ul>
+  <li>Text is as readable as it gets by step 5; telling the best samples apart with decoded previews needs step 7–8.</li>
+  <li>Scoring one decoded preview (VAE + OCR on CPU) costs ≈ 1.4 UNet steps: the VAE overhead in the goal statement is real.</li>
+  <li>Early exit (output the step-6 preview) keeps the final OCR (0.127 vs 0.125) at CLIP 0.947 vs 0.973.</li>
+</ul>
+
+<h2 id="steps">4. Step-reduction baseline</h2>
+<p>Base SD 1.5, deterministic DDIM, 128 OCR test prompts × 8 = 1024 images per row, H200 (<code>logs/intermediate_eval/h200_eta0_*steps</code>).</p>
+<div class="tw"><table>
+<thead><tr><th>Steps</th><th>4</th><th>6</th><th>8</th><th>10</th><th>20</th><th>50</th></tr></thead>
+<tbody>
+<tr><td>OCR</td><td class="num">0.047</td><td class="num">0.065</td><td class="num">0.097</td><td class="num">0.118</td><td class="num">0.160</td><td class="num">0.193</td></tr>
+<tr><td>Share of 50-step OCR</td><td class="num">24%</td><td class="num">34%</td><td class="num">50%</td><td class="num">61%</td><td class="num">83%</td><td class="num">100%</td></tr>
+<tr><td>CLIP score (training scale)</td><td class="num">0.819</td><td class="num">0.923</td><td class="num">0.953</td><td class="num">0.967</td><td class="num">0.977</td><td class="num">0.975</td></tr>
+<tr><td>Exact text match</td><td class="num">0%</td><td class="num">1%</td><td class="num">1%</td><td class="num">2%</td><td class="num">4%</td><td class="num">4%</td></tr>
+</tbody></table></div>
+<p class="callout">Target for the thesis: a 10–15-step model at the 20–50-step level. Alignment saturates early; text rendering is where the steps are spent.</p>
+
+<h2 id="p1">5. Phase 1 · A noise-aware process reward model</h2>
+<p>Goal of the phase: score text–image alignment of the noisy latent z<sub>t</sub> without a VAE decode. The NoisyCLIP code in the repo (<code>flow_grpo/noisyclip_scorer.py</code>) turned out to be a randomly initialised, untrained adapter for 16-channel SD 3 latents, and the published NoisyCLIP weights were not available, so we built and trained our own.</p>
+<h3>5.1 Untrained NoisyCLIP Option A (linear projection)</h3>
+<p>x̂₀ → affine 4→3 projection Φ to a 64×64 RGB image → CLIP ViT-L/14. Φ fitted by least squares on 32 held-out prompts (R² 0.82–0.86). Cost %%COST_PHI%% UNet steps. It detects a random wrong prompt early (93% at step 6 of 50, 100% from step 14), but its correlation with the final CLIP score <strong>plateaus at 0.65</strong> even at the last step: CLIP on a 64×64 linear projection is not the same signal as CLIP on the decoded image. Projecting the raw z<sub>t</sub> instead of x̂₀ is useless before ~55% of the trajectory.</p>
+<h3>5.2 Our trained scorer</h3>
+<ul>
+  <li><strong>Data</strong> (<code>scripts/phase1_make_data.py</code>): 1440 GenAI-Bench training prompts × 2 seeds, 50-step DDIM; Φ(x̂₀), x̂₀ at 25 steps and the CLIP embedding of the final image. The 32 calibration + 128 evaluation prompts are excluded.</li>
+  <li><strong>Model</strong> (<code>scripts/phase1_train_scorer.py</code>): CLIP ViT-L/14 vision tower + LoRA r16 + a timestep embedding (3.4 M trainable parameters), <strong>distilled to predict the final image's CLIP embedding</strong> from any step. Score = cosine with the prompt's CLIP text embedding, i.e. a predicted final CLIPScore. 8 minutes of training on one H200.</li>
+  <li><strong>v2 (latent input)</strong>: a small conv decoder on the 4-channel x̂₀ adds a learned residual at 256×256 on top of Φ. Raises the late plateau (Spearman 0.85 → 0.90 at the end, 0.78 → 0.82 at 40%).</li>
+  <li><strong>Final version</strong> <code>logs/phase1_scorer/v2_lat_10steps_eta1</code>: v2 retrained on 10-step stochastic trajectories (1440 prompts × 4 seeds), the setting GRPO uses.</li>
+</ul>
+<p>Evaluation on 128 never-seen GenAI-Bench prompts × 4 images, 10 steps, stochastic sampling (eta 1), all methods on identical trajectories:</p>
+<div class="legend">%%LEGEND%%</div>
+<div class="figs">
+  <figure><figcaption>Predicting the final image's CLIP score (all images)</figcaption>%%CHART_SP%%</figure>
+  <figure><figcaption>Ranking the images of the same prompt (what GRPO uses)</figcaption>%%CHART_GRP%%</figure>
+</div>
+<p class="note">Costs per call in UNet-step units: our scorer %%COST_TRAINED%%, TAESD + CLIP %%COST_TAESD%%, VAE + CLIP %%COST_VAE%%, untrained Φ + CLIP %%COST_PHI%%. Our scorer predicts where the trajectory will end; the decoders measure the current blurry preview, which is why they only win at the very end.</p>
+<h3>5.3 Results on the 50-step deterministic sampler (first trained version, v1)</h3>
+<div class="tw"><table>
+<thead><tr><th>Method</th><th>20% of steps</th><th>40%</th><th>60%</th><th>80%</th><th>Cost</th></tr></thead>
+<tbody>
+<tr><td>Our scorer v1</td><td class="num">0.44 / 0.33</td><td class="num">0.77 / 0.48</td><td class="num">0.85 / 0.53</td><td class="num">0.86 / 0.61</td><td class="num">0.16</td></tr>
+<tr><td>Untrained Φ + CLIP</td><td class="num">0.17 / 0.06</td><td class="num">0.50 / 0.26</td><td class="num">0.62 / 0.34</td><td class="num">0.65 / 0.39</td><td class="num">0.11</td></tr>
+<tr><td>TAESD + CLIP</td><td class="num">0.25 / 0.19</td><td class="num">0.65 / 0.37</td><td class="num">0.80 / 0.55</td><td class="num">0.91 / 0.74</td><td class="num">0.31</td></tr>
+<tr><td>VAE + CLIP</td><td class="num">0.22 / 0.13</td><td class="num">0.64 / 0.35</td><td class="num">0.82 / 0.60</td><td class="num">0.94 / 0.75</td><td class="num">1.78</td></tr>
+</tbody></table></div>
+<p class="note">Spearman with the final CLIP score / within-prompt Spearman; 512 images. Wrong-prompt detection by our scorer: 94% at step 2 of 50, 100% from step 8. The paper reports ~0.9 correlation at mid-run for NoisyCLIP; our scorer reaches 0.85 at 60% (v1) and 0.88 (v2).</p>
+<h3>5.4 Follow-up checks</h3>
+<ul>
+  <li><strong>Robustness</strong> (v1, trained on 50 deterministic steps only), Spearman / within-prompt at 40%: 15 steps 0.72 / 0.46, 10 steps 0.64 / 0.38, 50 stochastic steps 0.80 / 0.40, 10 stochastic steps 0.60 / 0.34. Still the best early predictor everywhere; retraining on 10-step stochastic data then gave <strong>0.68 / 0.42 at step 4, 0.80 / 0.50 at step 5, 0.86 / 0.61 at step 6</strong> (within-prompt +0.07 to +0.12 over v1, significant from step 5).</li>
+  <li><strong>By GenAI-Bench skill:</strong> similar on all skills; weakest within-prompt ranking on spatial and action relations (0.34–0.42 at 40–60%).</li>
+  <li><strong>Subtle negatives</strong> (the NoisyCLIP error categories): Qwen2.5-7B-Instruct wrote one minimal edit per prompt and category (<code>dataset/genai_bench/negatives.json</code>; count 383, color 1004, background 1353, subject 1592, relation 1216 prompts). Some edits are near-synonyms (baker → chef), so labels are noisy.</li>
+</ul>
+<div class="tw"><table>
+<thead><tr><th>Own prompt preferred over the edited negative</th><th>Count</th><th>Color</th><th>Background</th><th>Subject</th><th>Relation</th><th>All</th></tr></thead>
+<tbody>
+<tr><td>CLIP on the final image (ceiling for any CLIP-distilled PRM)</td><td class="num">0.76</td><td class="num">0.79</td><td class="num">0.88</td><td class="num">0.91</td><td class="num">0.66</td><td class="num">0.81</td></tr>
+<tr><td>Our scorer at 20% of the trajectory</td><td class="num">0.69</td><td class="num">0.77</td><td class="num">0.84</td><td class="num">0.83</td><td class="num">0.66</td><td class="num">0.77</td></tr>
+<tr><td>Our scorer at 40%</td><td class="num">0.68</td><td class="num">0.79</td><td class="num">0.84</td><td class="num">0.87</td><td class="num">0.64</td><td class="num">0.78</td></tr>
+<tr><td>TAESD / VAE at 20%</td><td class="num">0.61 / 0.60</td><td class="num">0.70 / 0.69</td><td class="num">0.76 / 0.76</td><td class="num">0.78 / 0.77</td><td class="num">0.60 / 0.61</td><td class="num">0.71 / 0.71</td></tr>
+</tbody></table></div>
+<p>The scorer already gives CLIP's final verdict early (agreement 0.85 at 20%, 0.91 at 40%). Training it with an extra subtle-negative loss added nothing and slightly hurt ranking, so it was dropped. <strong>The limit is now the teacher:</strong> CLIP itself only gets counting and relations right 66–76% of the time on finished images.</p>
+
+<h2 id="p2">6. Phase 2 · Calibrated early pruning</h2>
+<p><code>scripts/phase2_conformal_pruning.py</code>. In a group of G trajectories for one prompt, at a checkpoint step the scorer scores every live trajectory; those far below the group leader stop. The threshold λ is calibrated with <strong>Conformal Risk Control</strong> on half of the 128 held-out prompts and tested on the other half (40–200 random splits). Scores are put on one scale per step by the within-group spread (a simple version of the slides' drift correction). Data: 10 steps, stochastic sampling, final scorer.</p>
+<div class="tw"><table>
+<thead><tr><th>Risk controlled at α = 0.1</th><th>G = 4</th><th>G = 8</th></tr></thead>
+<tbody>
+<tr><td>The group's best final image is never pruned</td><td class="num">14–15% saved (step 5–6)</td><td class="num">17% saved (step 6, 47% pruned)</td></tr>
+<tr><td>Best kept image within 0.005 CLIP of the best</td><td class="num">–</td><td class="num pos">22% saved (step 6, 58% pruned)</td></tr>
+<tr><td>Best kept image within 0.01 CLIP of the best</td><td class="num">–</td><td class="num">24% saved (step 6, 63% pruned)</td></tr>
+<tr><td>TAESD as the scorer (same risk)</td><td class="num">7–10%</td><td class="num">10–18%</td></tr>
+<tr><td>VAE as the scorer</td><td class="num">≤ 5%, often negative</td><td class="num">≤ 5%, often negative</td></tr>
+</tbody></table></div>
+<ul>
+  <li>Measured test risk is 0.09–0.10 in every row: the conformal guarantee holds. At α = 0.2 the saving is 23–24%.</li>
+  <li><strong>t<sub>prune</sub> ≈ step 6 of 10 (60% of the trajectory).</strong> Several pruning points (3+5, 4+6, 2+4+6) with one shared threshold do not beat a single one at step 6.</li>
+  <li>The ceiling is structural: a trajectory pruned at step 6 only saves the remaining 40% of its steps, and before step 4–5 the scorer is not reliable enough to prune harder. The typical spread within a group is 0.021 CLIP; the image lost when the “best” is pruned is usually within 0.002–0.003 of the kept one.</li>
+</ul>
+
+<h2 id="p3">7. Phase 3 · GRPO with the process reward (alignment + text)</h2>
+<p>Decision on 10 Nov: focus on prompt alignment while keeping good text rendering, so both are trained together. Two runs, identical except for the alignment reward:</p>
+<div class="tw"><table>
+<thead><tr><th></th><th>mixed_prm (our method)</th><th>mixed_orm (baseline)</th></tr></thead>
+<tbody>
+<tr><td>Alignment reward</td><td>Our scorer on x̂₀ at steps 4, 6, 8, 10, averaged (cumulative process reward, no VAE)</td><td>CLIP ViT-L/14 on the decoded final image</td></tr>
+<tr><td>Text reward</td><td colspan="2">+ 80 × OCR on the final image, only for prompts with a quoted text</td></tr>
+<tr><td>Prompts</td><td colspan="2">1440 GenAI-Bench + 1088 OCR training prompts (all evaluation prompts excluded), 32 prompts × 8 images per epoch</td></tr>
+<tr><td>Optimisation</td><td colspan="2">10 steps, stochastic DDIM at every step, all 9 transitions trained; advantages normalised within each prompt's group; LoRA r32, lr 3e-4, clip 1e-3, KL β = 0.04 to the base model. approx_kl ≈ 2e-4 per update (≈ 1000× the OCR-only runs).</td></tr>
+</tbody></table></div>
+<h3>Base model references (same evaluation)</h3>
+<div class="tw"><table>
+<thead><tr><th>Base SD 1.5</th><th>OCR</th><th>Exact text</th><th>CLIP</th><th>PickScore</th><th>Subtle-negative accuracy</th></tr></thead>
+<tbody>
+<tr><td>10 steps</td><td class="num">%%B10_OCR%%</td><td class="num">%%B10_EX%%%</td><td class="num">%%B10_CLIP%%</td><td class="num">%%B10_PICK%%</td><td class="num">%%B10_NEG%%</td></tr>
+<tr><td>20 steps</td><td class="num">%%B20_OCR%%</td><td class="num">%%B20_EX%%%</td><td class="num">%%B20_CLIP%%</td><td class="num">%%B20_PICK%%</td><td class="num">%%B20_NEG%%</td></tr>
+<tr><td>50 steps</td><td class="num">%%B50_OCR%%</td><td class="num">%%B50_EX%%%</td><td class="num">%%B50_CLIP%%</td><td class="num">%%B50_PICK%%</td><td class="num">%%B50_NEG%%</td></tr>
+</tbody></table></div>
+<p class="note">Alignment: 128 held-out GenAI-Bench prompts × 4. Text: 128 held-out OCR prompts × 4. Deterministic 10-step DDIM; the same per-image seeds for every model, so differences are paired. PickScore is an independent judge that would reveal the model gaming CLIP.</p>
+<h3>Checkpoints so far (difference to base 10 steps, 95% bootstrap CI)</h3>
+<div class="legend"><span class="lg"><i class="sw s1"></i>GRPO + our PRM</span><span class="lg"><i class="sw s3"></i>GRPO + CLIP ORM</span><span class="lg">shaded: 95% CI</span></div>
+<div class="figs">
+  <figure><figcaption>Text rendering: OCR difference to base</figcaption>%%P3_OCR_CHART%%</figure>
+  <figure><figcaption>Independent alignment judge: PickScore difference</figcaption>%%P3_PICK_CHART%%</figure>
+</div>
+<h3>GRPO + our PRM (latest epoch %%LATEST_PRM%%)</h3>
+<div class="tw"><table>
+<thead><tr><th>Epoch</th><th>OCR</th><th>Exact text</th><th>CLIP</th><th>PickScore</th><th>Subtle-neg. acc.</th></tr></thead>
+<tbody>%%P3_PRM_ROWS%%</tbody></table></div>
+<h3>GRPO + CLIP ORM (latest epoch %%LATEST_ORM%%)</h3>
+<div class="tw"><table>
+<thead><tr><th>Epoch</th><th>OCR</th><th>Exact text</th><th>CLIP</th><th>PickScore</th><th>Subtle-neg. acc.</th></tr></thead>
+<tbody>%%P3_ORM_ROWS%%</tbody></table></div>
+<p class="note">Green / red cells: the 95% CI excludes zero. Many checkpoints are compared, so a single significant cell is not yet a result; that is what the confirmation run below is for.</p>
+<h3>Confirmation on new seeds</h3>
+%%CONFIRM%%
+<h3 id="curricula">Supervisor's curricula</h3>
+<p>Two schedulers suggested by the supervisor, each tested on top of the PRM run (one change at a time, plus both):</p>
+<ul>
+  <li><strong>Reward-weight curriculum:</strong> alignment first, text later. Over the first 60 epochs the OCR weight rises 0 → 80 and the alignment weight falls 100 → 50 (it never reaches zero, so alignment is not forgotten). Because advantages are normalised within each prompt's group, only the ratio matters, and only on prompts with a text target.</li>
+  <li><strong>Denoising-steps curriculum:</strong> 4 → 6 → 8 → 10 steps, 20 epochs each. The suggestion was 2 → 10, but SD 1.5 with 2 steps produces images with no usable content (with 4 steps base OCR is already only 0.047), so groups would carry no signal. The first epochs are 2–2.5× cheaper to sample. The PRM is queried at 40/60/80/100% of whatever trajectory length is current, and gradient accumulation is done manually so every epoch still makes 2 optimizer steps.</li>
+</ul>
+<p><strong>Does the PRM still work with fewer steps?</strong> It was trained only on the 10-step grid, so we re-checked it (128 held-out prompts × 4, eta = 1). Spearman with the final CLIP score / within-prompt: <strong>4 steps</strong>: step 2 0.67 / 0.35, step 3 0.83 / 0.63; <strong>6 steps</strong>: step 3 0.71 / 0.44, step 4 0.81 / 0.58, step 5 0.86 / 0.64. That is about as good as at 10 steps at the same fraction of the trajectory, so the steps curriculum gets a usable reward. At the last step the VAE is better (0.98 vs 0.83 at 4 steps), as at 10 steps.</p>
+<h3>Details of every Phase 3 run</h3>
+<p>All runs share: SD 1.5 + LoRA (rank 32), mixed prompt set (1440 GenAI-Bench + 1088 text prompts, held-out evaluation prompts excluded), 32 prompts × 8 images per epoch, stochastic DDIM (eta = 1) at every step, every transition trained, per-prompt advantage normalisation, PPO clip 1e-3, KL penalty β = 0.04, learning rate 3e-4, 2 optimizer steps per epoch, 8-bit Adam, one H200, checkpoint every 10 epochs, each checkpoint evaluated at 10 deterministic steps on the same held-out prompts and seeds. Reward = alignment weight × alignment + OCR weight × OCR (OCR only on prompts with quoted text).</p>
+<div class="tw"><table><thead><tr><th>Run</th><th>Alignment reward</th><th>Weights (align / OCR)</th><th>Sampling steps in training</th><th>Length</th><th>Status</th></tr></thead><tbody>
+<tr><td><strong>PRM</strong> (our method)<br><span class="mono">mixed_sd15_prm_1gpu</span></td><td>Our noise-aware PRM on x̂₀ at steps 4, 6, 8, 10, averaged; no VAE</td><td>100 / 80, fixed</td><td>10</td><td>100 epochs, ~4.7 h</td><td>Stopped at epoch 100 (cluster admin cancelled all jobs on 10 Nov, 15:07)</td></tr>
+<tr><td><strong>ORM</strong> (baseline)<br><span class="mono">mixed_sd15_orm_1gpu</span></td><td>CLIP ViT-L/14 on the final decoded image</td><td>100 / 80, fixed</td><td>10</td><td>100 epochs, ~4.5 h</td><td>Stopped at epoch 100 (same cancellation)</td></tr>
+<tr><td><strong>Weight curriculum</strong><br><span class="mono">mixed_sd15_prm_wsched_1gpu</span></td><td>Our PRM (as above)</td><td>Linear ramp over the first 60 epochs: 100 → 50 / 0 → 80, then fixed</td><td>10</td><td>100 epochs, 4.5 h</td><td>Finished 11 Nov, 01:23</td></tr>
+<tr><td><strong>Steps curriculum</strong><br><span class="mono">mixed_sd15_prm_ssched_1gpu</span></td><td>Our PRM at 40 / 60 / 80 / 100% of the current trajectory</td><td>100 / 80, fixed</td><td>4 (epochs 0–19) → 6 (20–39) → 8 (40–59) → 10 (60–99)</td><td>100 epochs, 3.5 h</td><td>Finished 11 Nov, 09:07</td></tr>
+<tr><td><strong>Both curricula</strong><br><span class="mono">mixed_sd15_prm_both_1gpu</span></td><td>Our PRM at 40 / 60 / 80 / 100% of the current trajectory</td><td>Weight ramp as in the weight curriculum</td><td>4 → 6 → 8 → 10 as in the steps curriculum</td><td>100 epochs</td><td><strong>Running</strong></td></tr>
+</tbody></table></div>
+<p class="note">The three curricula ran one after another (not in parallel) after the cancellation, and the first attempt of each (killed after 4–11 epochs) was discarded.</p>
+<p><strong>How training behaved.</strong> Mean approx_kl after an update / clip fraction, per 20-epoch block: steps curriculum 7.7e-3 / 0.64 (4 steps), 4.8e-4 / 0.26 (6 steps), 1.8e-4 / 0.17 (8 steps), ~8e-5 / 0.13 (10 steps). The weight curriculum stays at ~1e-4 / 0.13 throughout. So the 4-step phase takes much larger (mostly clipped) updates; once at 10 steps all runs behave alike.</p>
+<h3>Curricula vs the PRM run (difference to base 10 steps, in-training evaluation)</h3>
+<div class="legend"><span class="lg"><i class="sw s1"></i>PRM (no curriculum)</span><span class="lg"><i class="sw s2"></i>Weight curriculum</span><span class="lg"><i class="sw s4"></i>Steps curriculum</span></div>
+<div class="figs">
+  <figure><figcaption>Text rendering: OCR difference to base</figcaption>%%CURR_OCR_CHART%%</figure>
+  <figure><figcaption>Independent alignment judge: PickScore difference</figcaption>%%CURR_PICK_CHART%%</figure>
+</div>
+%%CURRICULA%%
+<p class="note">All curricula are evaluated at 10 steps on the same prompts and seeds as above, so their rows compare directly with the PRM and ORM tables.</p>
+<h3>Example images</h3>
+%%IMAGES%%
+
+<h2 id="method">8. How results are checked</h2>
+<ul>
+  <li><strong>Paired evaluation:</strong> every model generates from the same prompts and the same initial noise, so a difference comes from the model alone. Differences are averaged per prompt with a 95% bootstrap confidence interval.</li>
+  <li><strong>Same GPU type:</strong> the A100 and H200 produce different images for the same seed (base OCR 0.113 vs 0.131), so compared runs always share a GPU type.</li>
+  <li><strong>Independent check before claiming a gain:</strong> in-training evals produced two false positives. A gain counts only after a separate evaluation on new seeds with more images (1024 per set).</li>
+  <li><strong>Held-out prompts everywhere:</strong> the 160 GenAI-Bench calibration/evaluation prompts and the 128 OCR test words never appear in any training data.</li>
+  <li><strong>Cost in UNet-step units:</strong> scorer time per image divided by one UNet step (with CFG) on the same GPU.</li>
+</ul>
+
+<h2 id="questions">9. Questions for the meeting</h2>
+<ol>
+  <li><strong>Task:</strong> alignment on GenAI-Bench plus text rendering (current choice), or one of the two?</li>
+  <li><strong>Teacher model:</strong> CLIP limits the PRM on counting (76%) and relations (66%). Move to a VQA-based teacher (VQAScore, GenAI-Bench's own metric) or a VLM judge?</li>
+  <li><strong>NoisyCLIP:</strong> can we get Vasco's code and weights to compare with our scorer?</li>
+  <li><strong>Reward shape</strong> (slides): we use a smooth margin (cosine). Should step rewards become strict thresholds?</li>
+  <li><strong>KL penalty:</strong> β = 0.04 so far. How to tune it against reward hacking without collapsing diversity?</li>
+  <li><strong>Where to steer</strong> (slides): our data says the layout and text form at steps 3–5 of 10 and the PRM becomes reliable at step 4–5. Restrict Phase 3 updates to that window?</li>
+</ol>
+
+<h2 id="next">10. Next steps</h2>
+<ol>
+  <li>Phase 3 has no confirmed gain: the checkpoint-120 OCR gain (+0.026) did not reproduce on new seeds (+0.005, n.s.). Options: train longer (runs continue to epoch 90+), raise the OCR weight / learning rate, or distil from the 20/50-step base (step reduction) instead of pure RL. Then evaluate the supervisor's curricula (queued).</li>
+  <li>Combine Phases 2 and 3: prune trajectories during GRPO rollouts and measure the training compute saved.</li>
+  <li>Train the PRM against a stronger teacher (VQAScore) to get past CLIP's ceiling on composition errors.</li>
+  <li>Report the per-skill and per-category results for the final model (Count, Color, Background, Subject).</li>
+</ol>
+
+<h2 id="files">11. Files</h2>
+<div class="tw"><table>
+<thead><tr><th>File</th><th>Role</th></tr></thead>
+<tbody>
+<tr><td><code>CLAUDE.md</code></td><td>Running project log: goal, plan, every result, cluster notes</td></tr>
+<tr><td><code>scripts/train_sd15.py</code>, <code>config/grpo.py</code></td><td>SD 1.5 GRPO trainer and configs (<code>general_ocr_sd15_*</code>, <code>mixed_sd15_{prm,orm}_1gpu</code>)</td></tr>
+<tr><td><code>flow_grpo/diffusers_patch/sd15_pipeline_with_logprob.py</code>, <code>ddim_with_logprob.py</code></td><td>SD 1.5 sampler with log-probs, SDE window, x̂₀ callback for the PRM</td></tr>
+<tr><td><code>flow_grpo/mixed_reward.py</code></td><td>Phase 3 reward: alignment (PRM or CLIP) + OCR</td></tr>
+<tr><td><code>scripts/eval_intermediate_latents.py</code>, <code>compare_evals.py</code></td><td>Per-step preview analysis, paired comparisons, step-reduction baseline</td></tr>
+<tr><td><code>scripts/phase1_noisyclip.py</code></td><td>Phase 1 harness: all scorers per step, cost, negatives</td></tr>
+<tr><td><code>scripts/phase1_make_data.py</code>, <code>phase1_train_scorer.py</code></td><td>Scorer training data and training (v1, v2, latent input)</td></tr>
+<tr><td><code>scripts/phase1_make_negatives.py</code>, <code>phase1_negatives_report.py</code>, <code>phase1_skill_breakdown.py</code></td><td>Subtle negatives and per-category / per-skill analyses</td></tr>
+<tr><td><code>scripts/phase2_conformal_pruning.py</code></td><td>Phase 2 conformal pruning simulation</td></tr>
+<tr><td><code>scripts/phase3_eval.py</code>, <code>phase3_compare.py</code>, <code>phase3_autoeval.sh</code></td><td>Phase 3 evaluation, paired comparison, automatic checkpoint evaluation</td></tr>
+<tr><td><code>logs/phase1_scorer/v2_lat_10steps_eta1</code></td><td>Final noise-aware scorer</td></tr>
+</tbody></table></div>
+</main>
+</div>

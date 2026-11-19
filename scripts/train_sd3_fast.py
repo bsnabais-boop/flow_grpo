@@ -245,9 +245,7 @@ def eval(pipeline, test_dataloader, text_encoders, tokenizers, config, accelerat
             sample_neg_pooled_prompt_embeds = sample_neg_pooled_prompt_embeds[:len(prompt_embeds)]
         with autocast():
             with torch.no_grad():
-                images, _, _, _ = pipeline_with_logprob(
-                    pipeline,
-                    prompt=prompts,
+                images = pipeline(
                     prompt_embeds=prompt_embeds,
                     pooled_prompt_embeds=pooled_prompt_embeds,
                     negative_prompt_embeds=sample_neg_prompt_embeds,
@@ -256,15 +254,14 @@ def eval(pipeline, test_dataloader, text_encoders, tokenizers, config, accelerat
                     guidance_scale=config.sample.eval_guidance_scale,
                     output_type="pt",
                     height=config.resolution,
-                    width=config.resolution, 
-                    noise_level=0,
-                    sde_window_size=0,
-                    sde_type=config.sample.get("sde_type", "lognormal"),
-                )
+                    width=config.resolution,
+                ).images
         rewards = executor.submit(reward_fn, images, prompts, prompt_metadata, only_strict=False)
         # yield to to make sure reward computation starts
         time.sleep(0)
         rewards, reward_metadata = rewards.result()
+
+        print("AVALIAÇÃO:", rewards.keys())
 
         for key, value in rewards.items():
             rewards_gather = accelerator.gather(torch.as_tensor(value, device=accelerator.device)).cpu().numpy()
@@ -300,7 +297,7 @@ def eval(pipeline, test_dataloader, text_encoders, tokenizers, config, accelerat
                 pil = pil.resize((config.resolution, config.resolution))
                 pil.save(os.path.join(tmpdir, f"{idx}.jpg"))
             sampled_prompts = [last_batch_prompts_gather[index] for index in sample_indices]
-            sampled_rewards = [rewards_dict['ori_avg'][i].item() for i in sample_indices]
+            sampled_rewards = [{k: last_batch_rewards_gather[k][i].item() for k in last_batch_rewards_gather} for i in sample_indices]
             for key, value in all_rewards.items():
                 print(key, value.shape)
             wandb.log(
@@ -449,7 +446,10 @@ def main(_):
             pipeline.transformer.set_adapter("default")
         else:
             pipeline.transformer = get_peft_model(pipeline.transformer, transformer_lora_config)
-    
+
+        if hasattr(pipeline.transformer, "enable_gradient_checkpointing"):
+            pipeline.transformer.enable_gradient_checkpointing()
+
     transformer = pipeline.transformer
     transformer_trainable_parameters = list(filter(lambda p: p.requires_grad, transformer.parameters()))
     # This ema setting affects the previous 20 × 8 = 160 steps on average.
@@ -611,8 +611,8 @@ def main(_):
     while True:
         #################### EVAL ####################
         pipeline.transformer.eval()
-        # if epoch % config.eval_freq == 0:
-            #eval(pipeline, test_dataloader, text_encoders, tokenizers, config, accelerator, global_step, eval_reward_fn, executor, autocast, num_train_timesteps, ema, transformer_trainable_parameters)
+        if epoch % config.eval_freq == 0:
+            eval(pipeline, test_dataloader, text_encoders, tokenizers, config, accelerator, global_step, eval_reward_fn, executor, autocast, num_train_timesteps, ema, transformer_trainable_parameters)
         if epoch % config.save_freq == 0 and epoch > 0 and accelerator.is_main_process:
             save_ckpt(config.save_dir, transformer, global_step, accelerator, ema, transformer_trainable_parameters, config)
 
@@ -628,6 +628,7 @@ def main(_):
         ):
             train_sampler.set_epoch(epoch * config.sample.num_batches_per_epoch + i)
             prompts, prompt_metadata = next(train_iter)
+            prompt_metadata = [{"target_text": p} for p in prompts]
 
             prompt_embeds, pooled_prompt_embeds = compute_text_embeddings(
                 prompts, 
@@ -654,6 +655,7 @@ def main(_):
                 with torch.no_grad():
                     images, latents, log_probs, timesteps, step_rewards = pipeline_with_logprob(
                         pipeline,
+                        prompt=prompts,
                         prompt_embeds=prompt_embeds,
                         pooled_prompt_embeds=pooled_prompt_embeds,
                         negative_prompt_embeds=sample_neg_prompt_embeds,
